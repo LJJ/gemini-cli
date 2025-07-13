@@ -21,6 +21,7 @@ enum ToolName: String, Codable, CaseIterable {
     case loadMemory = "load_memory"
     case deleteMemory = "delete_memory"
     case listMemory = "list_memory"
+    case runShellCommand = "run_shell_command"
     
     // 显示名称
     var displayName: String {
@@ -49,6 +50,8 @@ enum ToolName: String, Codable, CaseIterable {
             return "删除记忆"
         case .listMemory:
             return "列出记忆"
+        case .runShellCommand:
+            return "运行Shell命令"
         }
     }
 }

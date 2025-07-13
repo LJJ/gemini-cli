@@ -28,6 +28,14 @@ struct ToolCall: Codable {
     }
 }
 
+// MARK: - 通用API响应模型
+struct APIResponse: Codable {
+    let success: Bool
+    let message: String?
+    let timestamp: String
+    let error: String?
+}
+
 // MARK: - API服务类
 final class APIService:Sendable {
     private let baseURL = "http://localhost:8080"
@@ -345,6 +353,25 @@ final class APIService:Sendable {
             return try decoder.decode(CommandResponse.self, from: data)
         } catch {
             print("解析命令执行响应失败: \(error)")
+            return nil
+        }
+    }
+    
+    // 通用的 POST 请求方法
+    func sendPostRequest(path: String, body: [String: Any]) async -> APIResponse? {
+        guard let url = URL(string: "\(baseURL)\(path)") else { return nil }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+        
+        do {
+            let (data, _) = try await URLSession.shared.data(for: request)
+            return try decoder.decode(APIResponse.self, from: data)
+        } catch {
+            print("解析 POST 请求响应失败: \(error)")
             return nil
         }
     }
