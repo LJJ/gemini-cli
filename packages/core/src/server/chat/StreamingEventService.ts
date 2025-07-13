@@ -104,20 +104,50 @@ export class StreamingEventService {
   }
 
   public sendCompleteEvent(res: express.Response, success: boolean = true, message: string = '对话完成'): void {
+    // 检查响应是否已经结束
+    if (res.writableEnded || res.destroyed) {
+      console.warn('响应流已关闭，跳过发送完成事件');
+      return;
+    }
+    
     const event = StreamingEventFactory.createCompleteEvent(success, message);
     this.writeEvent(res, event);
-    res.end(); // 确保在发送完成事件后关闭流
+    
+    // 安全地结束响应流
+    if (!res.writableEnded) {
+      res.end();
+    }
   }
 
   public sendErrorEvent(res: express.Response, message: string, code: string, details?: string): void {
+    // 检查响应是否已经结束
+    if (res.writableEnded || res.destroyed) {
+      console.warn('响应流已关闭，跳过发送错误事件');
+      return;
+    }
+    
     const event = StreamingEventFactory.createErrorEvent(message, code, details);
     this.writeEvent(res, event);
-    res.end(); // 确保在发送错误后关闭流
+    
+    // 安全地结束响应流
+    if (!res.writableEnded) {
+      res.end();
+    }
   }
 
   private writeEvent(res: express.Response, event: StreamingEvent): void {
-    const eventJson = JSON.stringify(event) + '\n';
-    res.write(eventJson);
+    // 检查响应是否已经结束，避免 ERR_STREAM_WRITE_AFTER_END 错误
+    if (res.writableEnded || res.destroyed) {
+      console.warn('尝试向已关闭的响应流写入数据，忽略此次写入');
+      return;
+    }
+    
+    try {
+      const eventJson = JSON.stringify(event) + '\n';
+      res.write(eventJson);
+    } catch (error) {
+      console.error('写入响应流时发生错误:', error);
+    }
   }
 
   private formatToolResult(completedCall: CompletedToolCall): string {

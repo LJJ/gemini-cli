@@ -165,12 +165,18 @@ export class GeminiService {
   }
 
   /**
-   * 清理服务
+   * 取消当前聊天
    */
   public async handleCancelChat(res: express.Response) {
     try {
       console.log('Processing chat cancellation request');
+      
+      // 取消当前聊天处理
       this.chatHandler.cancelCurrentChat();
+      
+      // 取消工具编排器中的操作
+      this.toolOrchestrator.cancelAllOperations();
+      
       res.json(ResponseFactory.success({ message: 'Chat cancelled successfully' }));
     } catch (error) {
       console.error('Error in handleCancelChat:', error);
