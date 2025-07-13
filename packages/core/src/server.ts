@@ -141,6 +141,11 @@ export class APIServer {
       this.geminiService.handleChat(req, res);
     });
     
+    // 取消聊天功能 - 新增
+    app.post('/cancelChat', async (req, res) => {
+      await this.geminiService.handleCancelChat(res);
+    });
+    
     // 工具确认功能
     app.post('/tool-confirmation', (req, res) => {
       this.geminiService.handleToolConfirmation(req, res);

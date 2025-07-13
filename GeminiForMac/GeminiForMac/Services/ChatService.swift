@@ -264,6 +264,34 @@ class ChatService: ObservableObject {
         await sendMessage(text, filePaths: [], workspacePath: nil)
     }
     
+    // 取消当前聊天
+    func cancelChat() async {
+        print("ChatService: 正在发送取消聊天请求...")
+        isLoading = false // 停止加载指示器
+        statusMessage = "正在取消..." // 显示取消状态
+        do {
+            // 发送取消请求到后端
+            let response = await apiService.sendPostRequest(path: "/cancelChat", body: [String: Any]())
+            if response?.success == true {
+                print("ChatService: 聊天取消请求发送成功")
+                // 成功发送取消请求后，清除所有待处理的工具确认
+                clearAllConfirmations()
+                // UI状态的最终更新将由后端发送的流事件（例如错误事件）来处理
+            } else {
+                let errorMessage = response?.message ?? "未知错误"
+                self.errorMessage = "取消聊天失败: \(errorMessage)"
+                print("ChatService: 取消聊天失败: \(errorMessage)")
+            }
+        } catch {
+            self.errorMessage = "取消聊天时发生网络错误: \(error.localizedDescription)"
+            print("ChatService: 取消聊天时发生网络错误: \(error.localizedDescription)")
+        }
+        // 不再在这里直接清除 statusMessage 或修改 messages，
+        // 而是等待后端流的事件来更新最终状态。
+        // 如果后端发送了 complete 事件，statusMessage 会被清空。
+        // 如果后端发送了 error 事件（例如用户取消），errorMessage 会被设置。
+    }
+
     // 清除消息
     func clearMessages() {
         messages.removeAll()

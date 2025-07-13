@@ -41,6 +41,16 @@ export class ChatHandler {
     private toolOrchestrator: ToolOrchestrator
   ) {}
 
+  public cancelCurrentChat(): void {
+    console.log('ChatHandler: 收到取消请求');
+    if (this.abortController) {
+      this.abortController.abort();
+      console.log('ChatHandler: AbortController 信号已触发');
+    }
+    this.resetState();
+    console.log('ChatHandler: 状态已重置');
+  }
+
   public async handleStreamingChat(
     message: string, 
     filePaths: string[] = [],

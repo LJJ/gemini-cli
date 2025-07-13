@@ -19,12 +19,8 @@ struct MessageInputView: View {
             TextField("输入消息...", text: $messageInputVM.messageText, axis: .vertical)
                 .textFieldStyle(.roundedBorder)
                 .focused($isTextFieldFocused)
-                .lineLimit(1...6)
-                .frame(maxHeight: 100)
-                .onSubmit {
-                    messageInputVM.sendMessage()
-                    isTextFieldFocused = false
-                }
+                .frame(maxHeight: 100) // 设置最大高度
+                .fixedSize(horizontal: false, vertical: true) // 允许垂直方向动态调整大小
             
             // 底部控制栏
             HStack(spacing: 12) {
@@ -84,17 +80,30 @@ struct MessageInputView: View {
                 
                 Spacer()
                 
-                // 右边发送按钮
-                Button(action: {
-                    messageInputVM.sendMessage()
-                    isTextFieldFocused = false
-                }) {
-                    Image(systemName: "arrow.up.circle.fill")
-                        .font(.title2)
-                        .foregroundColor(messageInputVM.messageText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? .secondary : .blue)
+                // 右边发送/取消按钮
+                if chatService.isLoading {
+                    Button(action: {
+                        Task {
+                            await chatService.cancelChat()
+                        }
+                    }) {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.title2)
+                            .foregroundColor(.red)
+                    }
+                    .buttonStyle(.plain)
+                } else {
+                    Button(action: {
+                        messageInputVM.sendMessage()
+                        isTextFieldFocused = false
+                    }) {
+                        Image(systemName: "arrow.up.circle.fill")
+                            .font(.title2)
+                            .foregroundColor(messageInputVM.messageText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? .secondary : .blue)
+                    }
+                    .disabled(messageInputVM.messageText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    .buttonStyle(.plain)
                 }
-                .disabled(messageInputVM.messageText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || chatService.isLoading)
-                .buttonStyle(.plain)
             }
         }
         .padding(.horizontal, 16)

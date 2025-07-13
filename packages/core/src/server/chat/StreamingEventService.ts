@@ -106,11 +106,13 @@ export class StreamingEventService {
   public sendCompleteEvent(res: express.Response, success: boolean = true, message: string = '对话完成'): void {
     const event = StreamingEventFactory.createCompleteEvent(success, message);
     this.writeEvent(res, event);
+    res.end(); // 确保在发送完成事件后关闭流
   }
 
   public sendErrorEvent(res: express.Response, message: string, code: string, details?: string): void {
     const event = StreamingEventFactory.createErrorEvent(message, code, details);
     this.writeEvent(res, event);
+    res.end(); // 确保在发送错误后关闭流
   }
 
   private writeEvent(res: express.Response, event: StreamingEvent): void {
