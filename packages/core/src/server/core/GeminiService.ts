@@ -167,6 +167,21 @@ export class GeminiService {
   /**
    * 清理服务
    */
+  public async handleCancelChat(res: express.Response) {
+    try {
+      console.log('Processing chat cancellation request');
+      this.chatHandler.cancelCurrentChat();
+      res.json(ResponseFactory.success({ message: 'Chat cancelled successfully' }));
+    } catch (error) {
+      console.error('Error in handleCancelChat:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      res.status(500).json(ResponseFactory.internalError(errorMessage));
+    }
+  }
+
+  /**
+   * 清理服务
+   */
   public async cleanup() {
     console.log('GeminiService: 清理服务');
     try {
