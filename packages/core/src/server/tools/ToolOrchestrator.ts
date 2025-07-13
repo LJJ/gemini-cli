@@ -125,6 +125,25 @@ export class ToolOrchestrator {
     this.sentConfirmationEvents.clear();
   }
 
+  public cancelAllOperations(): void {
+    console.log('ToolOrchestrator: 取消所有操作');
+    
+    if (this.toolScheduler) {
+      // 取消当前调度器中的所有工具调用
+      const toolCalls = (this.toolScheduler as any).toolCalls;
+      if (Array.isArray(toolCalls)) {
+        for (const toolCall of toolCalls) {
+          if (toolCall.status === 'awaiting_approval' || toolCall.status === 'executing') {
+            console.log(`取消工具调用: ${toolCall.request.callId}`);
+            toolCall.status = 'cancelled';
+          }
+        }
+      }
+    }
+    
+    this.clearCurrentResponse();
+  }
+
   private async handleAllToolCallsComplete(completedCalls: CompletedToolCall[]): Promise<void> {
     console.log('所有工具调用完成:', completedCalls.length);
     

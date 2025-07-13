@@ -94,7 +94,6 @@ export class ChatHandler {
       
       // 发送完成事件
       this.streamingEventService.sendCompleteEvent(res);
-      res.end();
       
     } catch (error) {
       console.error('Error in handleStreamingChat:', error);
@@ -106,7 +105,6 @@ export class ChatHandler {
         errorCode,
         error instanceof Error ? error.stack : undefined
       );
-      res.end();
     } finally {
       this.toolOrchestrator.clearCurrentResponse();
       this.resetState();
