@@ -14,16 +14,52 @@ class MessageInputVM: ObservableObject {
     @Injected(\.fileExplorerService) private var fileExplorerService
     @Injected(\.chatService) private var chatService
     
-    @Published var messageText: String = ""
+    @Published var messageText: String = "" {
+        didSet {
+            calculateTextHeight()
+        }
+    }
     @Published var currentModel: ModelInfo?
     @Published var supportedModels: [ModelInfo] = []
     @Published var showModelMenu: Bool = false
     @Published var isLoadingModels: Bool = false
+    @Published var textHeight: CGFloat = 20 // 动态文本高度
+    
+    private let minHeight: CGFloat = 20
+    private let maxHeight: CGFloat = 100
+    private let lineHeight: CGFloat = 20 // 估算的行高
     
     init() {
         Task {
             await fetchModelStatus()
         }
+    }
+    
+    private func calculateTextHeight() {
+        // 如果文本为空，使用最小高度
+        if messageText.isEmpty {
+            textHeight = minHeight
+            return
+        }
+        
+        // 使用更准确的方法计算文本高度
+        let font = NSFont.systemFont(ofSize: NSFont.systemFontSize)
+        let attributes = [NSAttributedString.Key.font: font]
+        
+        // 计算文本的边界，考虑实际可用宽度（减去padding和边框）
+        let availableWidth: CGFloat = 300 - 16 // 假设总宽度300，减去左右padding
+        let textSize = (messageText as NSString).boundingRect(
+            with: CGSize(width: availableWidth, height: CGFloat.greatestFiniteMagnitude),
+            options: [.usesLineFragmentOrigin, .usesFontLeading],
+            attributes: attributes,
+            context: nil
+        )
+        
+        // 计算实际高度（包含padding）
+        let calculatedHeight = textSize.height + 16 // 16是上下padding
+        
+        // 限制在最小和最大高度之间
+        textHeight = max(minHeight, min(maxHeight, calculatedHeight))
     }
     
     func sendMessage() {
