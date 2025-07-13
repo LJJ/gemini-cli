@@ -16,11 +16,17 @@ struct MessageInputView: View {
     var body: some View {
         VStack(spacing: 12) {
             // 顶部输入框
-            TextField("输入消息...", text: $messageInputVM.messageText, axis: .vertical)
-                .textFieldStyle(.roundedBorder)
+            TextEditor(text: $messageInputVM.messageText)
                 .focused($isTextFieldFocused)
-                .frame(maxHeight: 100) // 设置最大高度
-                .fixedSize(horizontal: false, vertical: true) // 允许垂直方向动态调整大小
+                .frame(height: messageInputVM.textHeight) // 使用动态高度
+                .padding(8) // Add padding to mimic TextField's inner padding
+                .overlay(
+                    RoundedRectangle(cornerRadius: 6)
+                        .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+                )
+                .scrollContentBackground(.hidden) // Hide default TextEditor background
+                .background(Color(NSColor.controlBackgroundColor)) // Set background color
+                .animation(.easeInOut(duration: 0.2), value: messageInputVM.textHeight) // 添加高度变化动画
             
             // 底部控制栏
             HStack(spacing: 12) {
