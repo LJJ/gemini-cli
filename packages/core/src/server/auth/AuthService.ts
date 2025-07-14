@@ -263,10 +263,7 @@ export class AuthService implements ConfigurableService {
       console.log('启动 Google 登录流程');
 
       if (this.currentAuthType !== AuthType.LOGIN_WITH_GOOGLE) {
-        return res.status(400).json({ 
-          success: false, 
-          message: '当前认证类型不是 Google 登录' 
-        });
+        return res.status(400).json(ResponseFactory.validationError('authType', '当前认证类型不是 Google 登录'));
       }
 
       // 检查是否有Config对象，如果没有则创建临时Config
@@ -280,36 +277,28 @@ export class AuthService implements ConfigurableService {
         await this.oauthManager.initializeOAuthClient();
         this.isAuthenticated = true;
         
-        res.json({
-          success: true,
-          message: 'Google 登录成功',
-          timestamp: new Date().toISOString()
-        });
+        res.json(ResponseFactory.authConfig('Google 登录成功'));
       } catch (oauthError) {
         console.error('Google OAuth 错误:', oauthError);
         
         if (oauthError instanceof Error && this.oauthManager.isNetworkError(oauthError)) {
-          res.status(500).json({ 
-            success: false,
-            message: '网络连接超时或缓存凭据过期，已自动清理缓存。请检查网络连接后重试。',
-            error: '网络连接超时或缓存问题'
-          });
+          res.status(500).json(ResponseFactory.errorWithCode(
+            ErrorCode.NETWORK_ERROR, 
+            '网络连接超时或缓存凭据过期，已自动清理缓存。请检查网络连接后重试。'
+          ));
         } else {
-          res.status(500).json({ 
-            success: false,
-            message: 'Google 登录失败，请检查网络连接或尝试使用 API Key 认证方式',
-            error: oauthError instanceof Error ? oauthError.message : 'Unknown error'
-          });
+          res.status(500).json(ResponseFactory.errorWithCode(
+            ErrorCode.AUTH_CONFIG_FAILED, 
+            'Google 登录失败，请检查网络连接或尝试使用 API Key 认证方式'
+          ));
         }
       }
 
     } catch (error) {
       console.error('Error in handleGoogleLogin:', error);
-      res.status(500).json({ 
-        success: false,
-        message: '启动 Google 登录失败',
-        error: error instanceof Error ? error.message : 'Unknown error'
-      });
+      res.status(500).json(ResponseFactory.internalError(
+        error instanceof Error ? error.message : '启动 Google 登录失败'
+      ));
     }
   }
 

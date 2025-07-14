@@ -104,7 +104,7 @@ struct ToolConfirmationRequest: Codable {
 
 // 工具确认响应数据
 struct ToolConfirmationData: Codable {
-    let success: Bool
+    let message: String
 }
 
 // 工具确认事件
