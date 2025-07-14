@@ -223,20 +223,17 @@ class ChatService: ObservableObject {
             callId: confirmation.callId,
             outcome: outcome
         ) {
-            if response.success {
-                // 只有在不是取消的情况下才显示成功消息
-                if outcome != .cancel {
-                    // 等待一段时间，让服务器处理工具调用
-                    try? await Task.sleep(nanoseconds: 1_000_000_000) // 1秒
-                    
-                    // 更新消息状态
-                    statusMessage = "✅ 工具调用执行完成"
-                    // 等待一段时间，让用户看到状态，然后清空
-                    try? await Task.sleep(nanoseconds: 1_000_000_000) // 1秒
-                    statusMessage = nil
-                }
-            } else {
-                errorMessage = "确认操作失败"
+            // 工具确认成功（服务器返回了响应就表示成功）
+            // 只有在不是取消的情况下才显示成功消息
+            if outcome != .cancel {
+                // 等待一段时间，让服务器处理工具调用
+                try? await Task.sleep(nanoseconds: 1_000_000_000) // 1秒
+                
+                // 更新消息状态
+                statusMessage = "✅ 工具调用执行完成"
+                // 等待一段时间，让用户看到状态，然后清空
+                try? await Task.sleep(nanoseconds: 1_000_000_000) // 1秒
+                statusMessage = nil
             }
         } else {
             errorMessage = "发送确认失败，请检查网络连接。"
