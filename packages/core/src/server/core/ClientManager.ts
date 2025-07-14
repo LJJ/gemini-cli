@@ -8,7 +8,7 @@ import { GeminiClient } from '../../core/client.js';
 import { AuthService } from '../auth/AuthService.js';
 import { DEFAULT_GEMINI_FLASH_MODEL } from '../../config/models.js';
 import { ErrorCode, createError } from '../types/error-codes.js';
-import { configFactory, WorkspaceServiceContainer, FactoryConfigParams } from '../../server/core/ConfigFactory.js';
+import { configFactory, WorkspaceServiceContainer, FactoryConfigParams } from './ConfigFactory.js';
 import { WorkspaceAwareService } from '../types/service-interfaces.js';
 import * as path from 'path';
 

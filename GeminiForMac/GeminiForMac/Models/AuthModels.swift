@@ -72,23 +72,14 @@ struct AuthConfig: Codable {
     }
 }
 
-// MARK: - API 响应模型 - 更新为标准化格式
-struct AuthResponse: Codable {
+// MARK: - 业务数据模型（用于 BaseResponse<T> 的泛型参数）
+
+// 认证响应数据
+struct AuthResponseData: Codable {
     let success: Bool
-    let message: String
-    let timestamp: String
-    let error: String?
 }
 
-// 认证状态响应
-struct AuthStatusResponse: Codable {
-    let success: Bool
-    let message: String
-    let data: AuthStatusData
-    let timestamp: String
-    let error: String?
-}
-
+// 认证状态数据
 struct AuthStatusData: Codable {
     let isAuthenticated: Bool
     let authType: String?

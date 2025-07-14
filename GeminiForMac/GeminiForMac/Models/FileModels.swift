@@ -21,24 +21,19 @@ struct DirectoryItem: Codable, Identifiable {
     }
 }
 
-// 目录响应 - 更新为标准化格式
-struct DirectoryResponse: Codable {
-    let success: Bool
+// MARK: - 业务数据模型（用于 BaseResponse<T> 的泛型参数）
+
+// 目录列表数据
+struct DirectoryData: Codable {
     let path: String
     let items: [DirectoryItem]
-    let timestamp: String
-    let error: String?
-    let message: String?
 }
 
-// 文件响应 - 更新为标准化格式
-struct FileResponse: Codable {
-    let success: Bool
+// 文件操作数据
+struct FileData: Codable {
     let path: String
     let content: String?
     let message: String?
-    let timestamp: String
-    let error: String?
 }
 
 // 文件请求

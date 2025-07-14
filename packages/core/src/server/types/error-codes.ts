@@ -64,10 +64,44 @@ export const ERROR_DESCRIPTIONS: Record<ErrorCode, string> = {
 };
 
 /**
+ * 错误代码到HTTP状态码的映射
+ */
+export const ERROR_TO_HTTP_STATUS: Record<ErrorCode, number> = {
+  [ErrorCode.VALIDATION_ERROR]: 400,
+  [ErrorCode.AUTH_NOT_SET]: 401,
+  [ErrorCode.AUTH_REQUIRED]: 401,
+  [ErrorCode.AUTH_CONFIG_FAILED]: 500,
+  [ErrorCode.OAUTH_INIT_FAILED]: 500,
+  [ErrorCode.CLIENT_NOT_INITIALIZED]: 400,
+  [ErrorCode.CLIENT_INIT_FAILED]: 500,
+  [ErrorCode.STREAM_ERROR]: 500,
+  [ErrorCode.TURN_NOT_INITIALIZED]: 500,
+  [ErrorCode.ABORT_CONTROLLER_NOT_INITIALIZED]: 500,
+  [ErrorCode.GEMINI_ERROR]: 500,
+  [ErrorCode.TOOL_SCHEDULER_NOT_INITIALIZED]: 500,
+  [ErrorCode.TOOL_CALL_NOT_FOUND]: 404,
+  [ErrorCode.TOOL_INVALID_OUTCOME]: 400,
+  [ErrorCode.INTERNAL_ERROR]: 500,
+  [ErrorCode.NETWORK_ERROR]: 503,
+  [ErrorCode.UNKNOWN_ERROR]: 500
+};
+
+/**
  * 创建带错误代码的错误对象
  */
 export function createError(code: ErrorCode, customMessage?: string): Error {
   const error = new Error(customMessage || ERROR_DESCRIPTIONS[code]);
   (error as any).code = code;
   return error;
+}
+
+/**
+ * 从错误代码创建标准化的错误响应
+ */
+export function createErrorResponse(errorCode: ErrorCode, customMessage?: string) {
+  return {
+    code: ERROR_TO_HTTP_STATUS[errorCode],
+    message: customMessage || ERROR_DESCRIPTIONS[errorCode],
+    timestamp: new Date().toISOString()
+  };
 } 

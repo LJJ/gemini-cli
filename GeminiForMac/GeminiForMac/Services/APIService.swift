@@ -7,44 +7,97 @@
 
 import Foundation
 
-// MARK: - API响应模型
-struct MessageResponse: Codable {
-    let success: Bool
-    let response: String
-    let hasToolCalls: Bool?
-    let toolCalls: [ToolCall]?
-    let timestamp: String
-    let error: String?
-    let message: String?
-}
-
-struct ToolCall: Codable {
-    let id: String
-    let name: String
-    let args: [String: String]  // 简化为字符串字典
-    
-    enum CodingKeys: String, CodingKey {
-        case id, name, args
-    }
-}
-
-// MARK: - 通用API响应模型
-struct APIResponse: Codable {
-    let success: Bool
-    let message: String?
-    let timestamp: String
-    let error: String?
-}
-
 // MARK: - API服务类
-final class APIService:Sendable {
+final class APIService: Sendable {
     private let baseURL = "http://localhost:8080"
-    private let decoder:JSONDecoder
-    init(){
+    private let decoder: JSONDecoder
+    
+    init() {
         let decoder = JSONDecoder()
         decoder.keyDecodingStrategy = .convertFromSnakeCase
         self.decoder = decoder
     }
+    
+    // MARK: - 统一的请求方法
+    
+    /// 统一的GET请求方法
+    /// - Parameters:
+    ///   - path: API路径（不包含baseURL）
+    ///   - queryItems: 查询参数（可选）
+    /// - Returns: 解码后的响应数据
+    func getRequest<T: Codable>(path: String, queryItems: [URLQueryItem]? = nil) async -> T? {
+        var urlComponents = URLComponents(string: "\(baseURL)\(path)")
+        if let queryItems = queryItems {
+            urlComponents?.queryItems = queryItems
+        }
+        
+        guard let url = urlComponents?.url else {
+            print("❌ 无法创建URL: \(path)")
+            return nil
+        }
+        
+        do {
+            let (data, response) = try await URLSession.shared.data(from: url)
+            
+            // Debug环境下打印响应信息
+            #if DEBUG
+            if let httpResponse = response as? HTTPURLResponse {
+                print("🌐 GET \(path)")
+                print("📡 状态码: \(httpResponse.statusCode)")
+                print("📄 响应数据: \(String(data: data, encoding: .utf8) ?? "无法解码")")
+            }
+            #endif
+            
+            return try decoder.decode(T.self, from: data)
+        } catch {
+            print("❌ GET请求失败 \(path): \(error)")
+            return nil
+        }
+    }
+    
+    /// 统一的POST请求方法
+    /// - Parameters:
+    ///   - path: API路径（不包含baseURL）
+    ///   - body: 请求体数据
+    /// - Returns: 解码后的响应数据
+    func postRequest<T: Codable>(path: String, body: [String: Any]) async -> T? {
+        guard let url = URL(string: "\(baseURL)\(path)") else {
+            print("❌ 无法创建URL: \(path)")
+            return nil
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        do {
+            request.httpBody = try JSONSerialization.data(withJSONObject: body)
+        } catch {
+            print("❌ 序列化请求体失败: \(error)")
+            return nil
+        }
+        
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            
+            // Debug环境下打印响应信息
+            #if DEBUG
+            if let httpResponse = response as? HTTPURLResponse {
+                print("🌐 POST \(path)")
+                print("📡 状态码: \(httpResponse.statusCode)")
+                print("📤 请求体: \(body)")
+                print("📄 响应数据: \(String(data: data, encoding: .utf8) ?? "无法解码")")
+            }
+            #endif
+            
+            return try decoder.decode(T.self, from: data)
+        } catch {
+            print("❌ POST请求失败 \(path): \(error)")
+            return nil
+        }
+    }
+    
+    // MARK: - 服务器状态检查
     
     // 检查服务器状态
     func checkServerStatus() async -> Bool {
@@ -58,21 +111,12 @@ final class APIService:Sendable {
         }
     }
     
+    // MARK: - 聊天功能
+    
     // 发送消息（统一使用流式响应，让 AI 自动决定是否需要交互式处理）
-    func sendMessage(_ text: String, filePaths: [String] = [], workspacePath: String? = nil) async -> MessageResponse? {
-        guard let url = URL(string: "\(baseURL)/chat") else { return nil }
+    func sendMessage(_ text: String, filePaths: [String] = [], workspacePath: String? = nil) async -> ChatResponseData? {
+        var body: [String: Any] = ["message": text]
         
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        
-        // 按照标准化API规范发送请求
-        var body: [String: Any] = [
-            "message": text
-            // 移除 stream 参数，统一使用流式响应
-        ]
-        
-        // 添加文件路径和工作目录
         if !filePaths.isEmpty {
             body["filePaths"] = filePaths
         }
@@ -80,15 +124,8 @@ final class APIService:Sendable {
             body["workspacePath"] = workspacePath
         }
         
-        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
-        
-        do {
-            let (data, _) = try await URLSession.shared.data(for: request)
-            return try decoder.decode(MessageResponse.self, from: data)
-        } catch {
-            print("解析响应失败: \(error)")
-            return nil
-        }
+        let baseResponse: BaseResponse<ChatResponseData>? = await postRequest(path: "/chat", body: body)
+        return baseResponse?.data
     }
     
     // 发送消息（流式响应）- 现在这是唯一的方式
@@ -104,13 +141,8 @@ final class APIService:Sendable {
                 request.httpMethod = "POST"
                 request.setValue("application/json", forHTTPHeaderField: "Content-Type")
                 
-                // 按照标准化API规范发送请求
-                var body: [String: Any] = [
-                    "message": text
-                    // 移除 stream 参数，统一使用流式响应
-                ]
+                var body: [String: Any] = ["message": text]
                 
-                // 添加文件路径和工作目录
                 if !filePaths.isEmpty {
                     body["filePaths"] = filePaths
                 }
@@ -136,45 +168,22 @@ final class APIService:Sendable {
         }
     }
     
-    // 发送工具确认 - 修复API路径
-    func sendToolConfirmation(callId: String, outcome: ToolConfirmationOutcome) async -> ToolConfirmationResponse? {
-        guard let url = URL(string: "\(baseURL)/tool-confirmation") else { return nil }
-        
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        
-        // 按照标准化API规范发送请求
+    // 发送工具确认
+    func sendToolConfirmation(callId: String, outcome: ToolConfirmationOutcome) async -> ToolConfirmationData? {
         let body: [String: Any] = [
             "callId": callId,
             "outcome": outcome.rawValue
         ]
         
-        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
-        
-        do {
-            let (data, _) = try await URLSession.shared.data(for: request)
-            return try decoder.decode(ToolConfirmationResponse.self, from: data)
-        } catch {
-            print("解析工具确认响应失败: \(error)")
-            return nil
-        }
+        let baseResponse: BaseResponse<ToolConfirmationData>? = await postRequest(path: "/tool-confirmation", body: body)
+        return baseResponse?.data
     }
     
     // MARK: - 认证功能
     
     // 设置认证配置
-    func setAuthConfig(authType: AuthType, apiKey: String? = nil, googleCloudProject: String? = nil, googleCloudLocation: String? = nil) async -> AuthResponse? {
-        guard let url = URL(string: "\(baseURL)/auth/config") else { return nil }
-        
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        
-        // 按照标准化API规范发送请求
-        var body: [String: Any] = [
-            "authType": authType.rawValue
-        ]
+    func setAuthConfig(authType: AuthType, apiKey: String? = nil, googleCloudProject: String? = nil, googleCloudLocation: String? = nil) async -> AuthResponseData? {
+        var body: [String: Any] = ["authType": authType.rawValue]
         
         if let apiKey = apiKey, !apiKey.isEmpty {
             body["apiKey"] = apiKey
@@ -186,193 +195,82 @@ final class APIService:Sendable {
             body["googleCloudLocation"] = googleCloudLocation
         }
         
-        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
-        
-        do {
-            let (data, _) = try await URLSession.shared.data(for: request)
-            return try decoder.decode(AuthResponse.self, from: data)
-        } catch {
-            print("解析认证配置响应失败: \(error)")
-            return nil
-        }
+        let baseResponse: BaseResponse<AuthResponseData>? = await postRequest(path: "/auth/config", body: body)
+        return baseResponse?.data
     }
     
     // 启动 Google 登录
-    func startGoogleLogin() async -> AuthResponse? {
+    func startGoogleLogin() async -> AuthResponseData? {
         print("发送 Google 登录请求...")
         
-        guard let url = URL(string: "\(baseURL)/auth/google-login") else { 
-            print("无法创建 Google 登录 URL")
-            return nil 
+        let baseResponse: BaseResponse<AuthResponseData>? = await postRequest(path: "/auth/google-login", body: [:])
+        
+        if let data = baseResponse?.data {
+            print("Google 登录响应解析成功: \(data)")
         }
         
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        
-        do {
-            let (data, response) = try await URLSession.shared.data(for: request)
-            
-            if let httpResponse = response as? HTTPURLResponse {
-                print("Google 登录 HTTP 状态码: \(httpResponse.statusCode)")
-            }
-            
-            print("Google 登录响应数据: \(String(data: data, encoding: .utf8) ?? "无法解码")")
-            
-            let authResponse = try decoder.decode(AuthResponse.self, from: data)
-            print("Google 登录响应解析成功: \(authResponse)")
-            return authResponse
-        } catch {
-            print("Google 登录请求失败: \(error)")
-            return nil
-        }
+        return baseResponse?.data
     }
     
     // 获取认证状态
-    func getAuthStatus() async -> AuthStatusResponse? {
-        guard let url = URL(string: "\(baseURL)/auth/status") else { return nil }
-        
-        do {
-            let (data, _) = try await URLSession.shared.data(from: url)
-            return try decoder.decode(AuthStatusResponse.self, from: data)
-        } catch {
-            print("解析认证状态响应失败: \(error)")
-            return nil
-        }
+    func getAuthStatus() async -> AuthStatusData? {
+        let baseResponse: BaseResponse<AuthStatusData>? = await getRequest(path: "/auth/status")
+        return baseResponse?.data
     }
     
     // 登出
-    func logout() async -> AuthResponse? {
-        guard let url = URL(string: "\(baseURL)/auth/logout") else { return nil }
-        
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        
-        do {
-            let (data, _) = try await URLSession.shared.data(for: request)
-            return try decoder.decode(AuthResponse.self, from: data)
-        } catch {
-            print("解析登出响应失败: \(error)")
-            return nil
-        }
+    func logout() async -> AuthResponseData? {
+        let baseResponse: BaseResponse<AuthResponseData>? = await postRequest(path: "/auth/logout", body: [:])
+        return baseResponse?.data
     }
     
     // 清除认证配置
-    func clearAuth() async -> AuthResponse? {
-        guard let url = URL(string: "\(baseURL)/auth/clear") else { return nil }
-        
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        
-        do {
-            let (data, _) = try await URLSession.shared.data(for: request)
-            return try decoder.decode(AuthResponse.self, from: data)
-        } catch {
-            print("解析清除认证响应失败: \(error)")
-            return nil
-        }
+    func clearAuth() async -> AuthResponseData? {
+        let baseResponse: BaseResponse<AuthResponseData>? = await postRequest(path: "/auth/clear", body: [:])
+        return baseResponse?.data
     }
     
     // MARK: - 文件操作功能
     
     // 列出目录内容
-    func listDirectory(path: String = ".") async -> DirectoryResponse? {
-        guard let url = URL(string: "\(baseURL)/list-directory?path=\(path.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? path)") else { return nil }
-        
-        do {
-            let (data, _) = try await URLSession.shared.data(from: url)
-            return try decoder.decode(DirectoryResponse.self, from: data)
-        } catch {
-            print("解析目录列表响应失败: \(error)")
-            return nil
-        }
+    func listDirectory(path: String = ".") async -> DirectoryData? {
+        let queryItems = [URLQueryItem(name: "path", value: path)]
+        let baseResponse: BaseResponse<DirectoryData>? = await getRequest(path: "/list-directory", queryItems: queryItems)
+        return baseResponse?.data
     }
     
     // 读取文件内容
-    func readFile(path: String) async -> FileResponse? {
-        guard let url = URL(string: "\(baseURL)/read-file") else { return nil }
-        
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        
+    func readFile(path: String) async -> FileData? {
         let body: [String: Any] = ["path": path]
-        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
-        
-        do {
-            let (data, _) = try await URLSession.shared.data(for: request)
-            return try decoder.decode(FileResponse.self, from: data)
-        } catch {
-            print("解析文件读取响应失败: \(error)")
-            return nil
-        }
+        let baseResponse: BaseResponse<FileData>? = await postRequest(path: "/read-file", body: body)
+        return baseResponse?.data
     }
     
     // 写入文件内容
-    func writeFile(path: String, content: String) async -> FileResponse? {
-        guard let url = URL(string: "\(baseURL)/write-file") else { return nil }
-        
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        
+    func writeFile(path: String, content: String) async -> FileData? {
         let body: [String: Any] = [
             "path": path,
             "content": content
         ]
-        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
-        
-        do {
-            let (data, _) = try await URLSession.shared.data(for: request)
-            return try decoder.decode(FileResponse.self, from: data)
-        } catch {
-            print("解析文件写入响应失败: \(error)")
-            return nil
-        }
+        let baseResponse: BaseResponse<FileData>? = await postRequest(path: "/write-file", body: body)
+        return baseResponse?.data
     }
     
     // 执行命令
-    func executeCommand(command: String, cwd: String? = nil) async -> CommandResponse? {
-        guard let url = URL(string: "\(baseURL)/execute-command") else { return nil }
-        
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        
+    func executeCommand(command: String, cwd: String? = nil) async -> CommandData? {
         var body: [String: Any] = ["command": command]
         if let cwd = cwd, !cwd.isEmpty {
             body["cwd"] = cwd
         }
         
-        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
-        
-        do {
-            let (data, _) = try await URLSession.shared.data(for: request)
-            return try decoder.decode(CommandResponse.self, from: data)
-        } catch {
-            print("解析命令执行响应失败: \(error)")
-            return nil
-        }
+        let baseResponse: BaseResponse<CommandData>? = await postRequest(path: "/execute-command", body: body)
+        return baseResponse?.data
     }
     
-    // 通用的 POST 请求方法
-    func sendPostRequest(path: String, body: [String: Any]) async -> APIResponse? {
-        guard let url = URL(string: "\(baseURL)\(path)") else { return nil }
-        
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        
-        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
-        
-        do {
-            let (data, _) = try await URLSession.shared.data(for: request)
-            return try decoder.decode(APIResponse.self, from: data)
-        } catch {
-            print("解析 POST 请求响应失败: \(error)")
-            return nil
-        }
+
+    
+    // 通用的 POST 请求方法（保留用于特殊需求）
+    func sendPostRequest(path: String, body: [String: Any]) async -> BaseResponse<[String: String]>? {
+        return await postRequest(path: path, body: body)
     }
 }
