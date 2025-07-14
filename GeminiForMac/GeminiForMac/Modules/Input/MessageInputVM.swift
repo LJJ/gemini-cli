@@ -23,11 +23,12 @@ class MessageInputVM: ObservableObject {
     @Published var supportedModels: [ModelInfo] = []
     @Published var showModelMenu: Bool = false
     @Published var isLoadingModels: Bool = false
-    @Published var textHeight: CGFloat = 20 // 动态文本高度
+    @Published var textHeight: CGFloat = 30 // 动态文本高度
     
-    private let minHeight: CGFloat = 20
+    private let minHeight: CGFloat = 30 // 单行高度
     private let maxHeight: CGFloat = 100
-    private let lineHeight: CGFloat = 20 // 估算的行高
+    private let padding: CGFloat = 16 // 上下padding总计
+    private var currentTextWidth: CGFloat = 300 // 当前可用文本宽度
     
     init() {
         Task {
@@ -42,12 +43,16 @@ class MessageInputVM: ObservableObject {
             return
         }
         
-        // 使用更准确的方法计算文本高度
-        let font = NSFont.systemFont(ofSize: NSFont.systemFontSize)
-        let attributes = [NSAttributedString.Key.font: font]
+        // 使用TextEditor实际使用的字体（系统字体）
+        let font = NSFont.systemFont(ofSize: 13) // TextEditor默认字体大小
+        let attributes: [NSAttributedString.Key: Any] = [
+            .font: font
+        ]
         
-        // 计算文本的边界，考虑实际可用宽度（减去padding和边框）
-        let availableWidth: CGFloat = 300 - 16 // 假设总宽度300，减去左右padding
+        // 计算可用宽度（减去左右padding）
+        let availableWidth = currentTextWidth - padding
+        
+        // 计算文本尺寸
         let textSize = (messageText as NSString).boundingRect(
             with: CGSize(width: availableWidth, height: CGFloat.greatestFiniteMagnitude),
             options: [.usesLineFragmentOrigin, .usesFontLeading],
@@ -55,11 +60,16 @@ class MessageInputVM: ObservableObject {
             context: nil
         )
         
-        // 计算实际高度（包含padding）
-        let calculatedHeight = textSize.height + 16 // 16是上下padding
+        // 计算实际高度（文本高度 + 上下padding）
+        let calculatedHeight = ceil(textSize.height) + padding
         
         // 限制在最小和最大高度之间
         textHeight = max(minHeight, min(maxHeight, calculatedHeight))
+    }
+    
+    func updateTextWidth(_ width: CGFloat) {
+        currentTextWidth = width
+        calculateTextHeight()
     }
     
     func sendMessage() {
