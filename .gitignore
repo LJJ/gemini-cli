@@ -41,3 +41,4 @@ packages/cli/src/generated/
 
 
 GeminiForMac/build/
+macPackage/bin/
