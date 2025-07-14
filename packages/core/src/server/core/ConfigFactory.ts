@@ -10,6 +10,7 @@ import { GeminiClient } from '../../core/client.js';
 import { createToolRegistry } from '../../config/config.js';
 import { DEFAULT_GEMINI_FLASH_MODEL } from '../../config/models.js';
 import { ErrorCode, createError } from '../../server/types/error-codes.js';
+import { ConfigCache } from './ConfigCache.js';
 
 /**
  * 工作区相关的服务容器 - 只包含与workspace相关的服务
@@ -44,6 +45,7 @@ export class ConfigFactory {
   private currentContainer: WorkspaceServiceContainer | null = null;
   private globalAuthService: AuthService | null = null;
   private isInitialized = false;
+  private enableConfigCache = true; // 是否启用配置缓存
 
   /**
    * 获取或创建全局AuthService（单例模式）
@@ -184,7 +186,42 @@ export class ConfigFactory {
       this.globalAuthService = null;
     }
     
+    // 清理过期缓存
+    if (this.enableConfigCache) {
+      ConfigCache.cleanupExpiredCache();
+    }
+    
     this.isInitialized = false;
+  }
+
+  /**
+   * 启用或禁用配置缓存
+   * @param enabled 是否启用缓存
+   */
+  public setConfigCacheEnabled(enabled: boolean): void {
+    this.enableConfigCache = enabled;
+    console.log(`ConfigFactory: 配置缓存已${enabled ? '启用' : '禁用'}`);
+  }
+
+  /**
+   * 清除特定工作区的缓存
+   * @param workspacePath 工作区路径
+   */
+  public clearWorkspaceCache(workspacePath: string): void {
+    if (this.enableConfigCache) {
+      ConfigCache.removeCachedConfig(workspacePath);
+    }
+  }
+
+  /**
+   * 获取所有缓存的工作区
+   * @returns 工作区路径数组
+   */
+  public getCachedWorkspaces(): string[] {
+    if (this.enableConfigCache) {
+      return ConfigCache.getCachedWorkspaces();
+    }
+    return [];
   }
 
   /**
@@ -199,25 +236,60 @@ export class ConfigFactory {
   }
 
   /**
-   * 创建并完整初始化Config对象（遵循原始逻辑）
+   * 创建并完整初始化Config对象（遵循原始逻辑，支持缓存）
    */
   private async createAndInitializeConfig(params: FactoryConfigParams): Promise<Config> {
     console.log('ConfigFactory: 创建并初始化Config对象');
     
-    const configParams: ConfigParameters = {
-      sessionId: params.sessionId || `api-server-${Date.now()}`,
-      targetDir: params.targetDir,
-      debugMode: params.debugMode || false,
-      cwd: params.cwd || params.targetDir,
-      model: params.model || DEFAULT_GEMINI_FLASH_MODEL,
-      proxy: params.proxy,
-    };
+    let configParams: ConfigParameters;
+    const workspaceKey = params.targetDir;
+
+    // 尝试从缓存恢复配置
+    if (this.enableConfigCache) {
+      const cachedConfig = ConfigCache.loadConfigFromCache(workspaceKey);
+      if (cachedConfig) {
+        console.log('ConfigFactory: 使用缓存的配置参数');
+        configParams = ConfigCache.toConfigParameters(cachedConfig, {
+          sessionId: params.sessionId || `api-server-${Date.now()}`, // 总是使用新的sessionId
+          targetDir: params.targetDir, // 确保使用当前请求的targetDir
+          debugMode: params.debugMode,
+          model: params.model,
+          proxy: params.proxy,
+          cwd: params.cwd
+        });
+      } else {
+        console.log('ConfigFactory: 没有可用的缓存配置，创建新配置');
+        configParams = {
+          sessionId: params.sessionId || `api-server-${Date.now()}`,
+          targetDir: params.targetDir,
+          debugMode: params.debugMode || false,
+          cwd: params.cwd || params.targetDir,
+          model: params.model || DEFAULT_GEMINI_FLASH_MODEL,
+          proxy: params.proxy,
+        };
+      }
+    } else {
+      // 禁用缓存时的默认行为
+      configParams = {
+        sessionId: params.sessionId || `api-server-${Date.now()}`,
+        targetDir: params.targetDir,
+        debugMode: params.debugMode || false,
+        cwd: params.cwd || params.targetDir,
+        model: params.model || DEFAULT_GEMINI_FLASH_MODEL,
+        proxy: params.proxy,
+      };
+    }
 
     const config = new Config(configParams);
     
     // 关键：立即初始化工具注册表（遵循原始逻辑）
     console.log('ConfigFactory: 初始化工具注册表');
     (config as any).toolRegistry = await createToolRegistry(config);
+    
+    // 保存配置到缓存
+    if (this.enableConfigCache) {
+      ConfigCache.saveConfigToCache(config, workspaceKey);
+    }
     
     console.log('ConfigFactory: Config对象初始化完成');
     return config;

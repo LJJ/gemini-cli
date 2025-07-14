@@ -100,12 +100,11 @@ struct ToolConfirmationRequest: Codable {
     let outcome: ToolConfirmationOutcome
 }
 
-// 工具确认响应 - 更新为标准化格式
-struct ToolConfirmationResponse: Codable {
+// MARK: - 业务数据模型（用于 BaseResponse<T> 的泛型参数）
+
+// 工具确认响应数据
+struct ToolConfirmationData: Codable {
     let success: Bool
-    let message: String
-    let timestamp: String
-    let error: String?
 }
 
 // 工具确认事件

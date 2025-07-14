@@ -299,10 +299,24 @@ export class Config {
   }
 
   setModel(newModel: string): void {
+    // 如果 contentGeneratorConfig 存在，直接更新它
     if (this.contentGeneratorConfig) {
       this.contentGeneratorConfig.model = newModel;
       this.modelSwitchedDuringSession = true;
+      console.log('Config: 模型已切换到', newModel);
+    } else {
+      // 如果 contentGeneratorConfig 不存在，标记需要重新初始化
+      console.log('Config: contentGeneratorConfig 不存在，模型切换将在下次初始化时生效');
+      this.modelSwitchedDuringSession = true;
     }
+  }
+
+  /**
+   * 设置 ContentGeneratorConfig
+   */
+  setContentGeneratorConfig(config: ContentGeneratorConfig): void {
+    this.contentGeneratorConfig = config;
+    console.log('Config: ContentGeneratorConfig 已设置', { model: config.model });
   }
 
   isModelSwitchedDuringSession(): boolean {

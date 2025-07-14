@@ -6,17 +6,24 @@
 
 // 基础响应格式
 export interface BaseResponse {
-  success: boolean;
-  message?: string;
+  code: number;           // 状态码：200=成功，其他=错误
+  message: string;        // 响应消息
+  timestamp: string;      // 时间戳
+}
+
+// 成功响应格式
+export interface SuccessResponse<T = any> extends BaseResponse {
+  code: 200;
+  message: string;
+  data: T;
   timestamp: string;
-  error?: string;
 }
 
 // 错误响应格式
 export interface ErrorResponse extends BaseResponse {
-  success: false;
-  error: string;
-  message: string;
+  code: number;          // 非200的状态码
+  message: string;       // 错误消息
+  timestamp: string;
 }
 
 // 1. 健康检查
@@ -158,24 +165,24 @@ export interface ReadFileRequest {
   path: string;
 }
 
-export interface ReadFileResponse extends BaseResponse {
+export interface ReadFileResponse extends SuccessResponse<{
   path: string;
   content: string | null;
   success: boolean;
   message?: string;
-}
+}> {}
 
 export interface WriteFileRequest {
   path: string;
   content: string;
 }
 
-export interface WriteFileResponse extends BaseResponse {
+export interface WriteFileResponse extends SuccessResponse<{
   path: string;
   content: string;
   success: boolean;
   message?: string;
-}
+}> {}
 
 // 5. 命令执行
 export interface ExecuteCommandRequest {

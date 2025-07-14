@@ -12,7 +12,7 @@ import { ToolOrchestrator } from '../tools/ToolOrchestrator.js';
 import { ClientManager } from '../core/ClientManager.js';
 import { CompletedToolCall } from '../../core/coreToolScheduler.js';
 import { ErrorCode, createError } from '../types/error-codes.js';
-import { configFactory } from '../../server/core/ConfigFactory.js';
+import { configFactory } from '../core/ConfigFactory.js';
 
 /**
  * 聊天处理器 - 负责聊天消息的处理和流式响应（优化版）

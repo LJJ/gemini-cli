@@ -483,43 +483,49 @@ interface ExecuteCommandResponse extends BaseResponse {
 
 **响应**:
 ```typescript
-interface ModelStatusResponse extends BaseResponse {
+interface ModelStatusResponse {
+  code: number;                          // 状态码：200=成功
   message: string;                       // 响应消息
-  currentModel: string;                  // 当前使用的模型名称
-  supportedModels: string[];             // 支持的模型列表
-  modelStatuses: Array<{                 // 所有模型的状态信息
-    name: string;                        // 模型名称
-    available: boolean;                  // 是否可用
-    status: 'available' | 'unavailable' | 'unknown';  // 状态
-    message: string;                     // 状态描述
-  }>;
+  data: {
+    currentModel: string;                // 当前使用的模型名称
+    supportedModels: string[];           // 支持的模型列表
+    modelStatuses: Array<{               // 所有模型的状态信息
+      name: string;                      // 模型名称
+      available: boolean;                // 是否可用
+      status: 'available' | 'unavailable' | 'unknown';  // 状态
+      message: string;                   // 状态描述
+    }>;
+  };
+  timestamp: string;                     // 时间戳
 }
 ```
 
 **示例**:
 ```json
 {
-  "success": true,
+  "code": 200,
   "message": "模型状态查询成功",
-  "currentModel": "gemini-2.5-pro",
-  "supportedModels": [
-    "gemini-2.5-pro",
-    "gemini-2.5-flash"
-  ],
-  "modelStatuses": [
-    {
-      "name": "gemini-2.5-pro",
-      "available": true,
-      "status": "available",
-      "message": "Pro model is available"
-    },
-    {
-      "name": "gemini-2.5-flash",
-      "available": true,
-      "status": "available",
-      "message": "Flash model is always available"
-    }
-  ],
+  "data": {
+    "currentModel": "gemini-2.5-pro",
+    "supportedModels": [
+      "gemini-2.5-pro",
+      "gemini-2.5-flash"
+    ],
+    "modelStatuses": [
+      {
+        "name": "gemini-2.5-pro",
+        "available": true,
+        "status": "available",
+        "message": "Pro model is available"
+      },
+      {
+        "name": "gemini-2.5-flash",
+        "available": true,
+        "status": "available",
+        "message": "Flash model is always available"
+      }
+    ]
+  },
   "timestamp": "2025-01-20T10:30:00.000Z"
 }
 ```
@@ -541,31 +547,37 @@ interface ModelSwitchRequest {
 
 **响应**:
 ```typescript
-interface ModelSwitchResponse extends BaseResponse {
+interface ModelSwitchResponse {
+  code: number;                          // 状态码：200=成功
   message: string;                       // 响应消息
-  model: {
-    name: string;                        // 新模型名称
-    previousModel: string;               // 之前的模型名称
-    switched: boolean;                   // 是否实际切换了
-    available?: boolean;                 // 新模型是否可用
-    status?: 'available' | 'unavailable' | 'unknown';  // 新模型状态
-    availabilityMessage?: string;        // 可用性消息
+  data: {
+    model: {
+      name: string;                      // 新模型名称
+      previousModel: string;             // 之前的模型名称
+      switched: boolean;                 // 是否实际切换了
+      available?: boolean;               // 新模型是否可用
+      status?: 'available' | 'unavailable' | 'unknown';  // 新模型状态
+      availabilityMessage?: string;      // 可用性消息
+    };
   };
+  timestamp: string;                     // 时间戳
 }
 ```
 
 **示例**:
 ```json
 {
-  "success": true,
+  "code": 200,
   "message": "Model switched successfully from gemini-2.5-pro to gemini-2.5-flash",
-  "model": {
-    "name": "gemini-2.5-flash",
-    "previousModel": "gemini-2.5-pro",
-    "switched": true,
-    "available": true,
-    "status": "available",
-    "availabilityMessage": "Flash model is always available"
+  "data": {
+    "model": {
+      "name": "gemini-2.5-flash",
+      "previousModel": "gemini-2.5-pro",
+      "switched": true,
+      "available": true,
+      "status": "available",
+      "availabilityMessage": "Flash model is always available"
+    }
   },
   "timestamp": "2025-01-20T10:30:00.000Z"
 }
@@ -575,12 +587,14 @@ interface ModelSwitchResponse extends BaseResponse {
 - 如果请求相同模型：
 ```json
 {
-  "success": true,
+  "code": 200,
   "message": "Already using model: gemini-2.5-pro",
-  "model": {
-    "name": "gemini-2.5-pro",
-    "previousModel": "gemini-2.5-pro",
-    "switched": false
+  "data": {
+    "model": {
+      "name": "gemini-2.5-pro",
+      "previousModel": "gemini-2.5-pro",
+      "switched": false
+    }
   },
   "timestamp": "2025-01-20T10:30:00.000Z"
 }
@@ -589,8 +603,7 @@ interface ModelSwitchResponse extends BaseResponse {
 - 如果模型名称无效：
 ```json
 {
-  "success": false,
-  "error": "Validation Error",
+  "code": 400,
   "message": "model: Invalid model name. Valid models: gemini-2.5-pro, gemini-2.5-flash",
   "timestamp": "2025-01-20T10:30:00.000Z"
 }
@@ -601,9 +614,8 @@ interface ModelSwitchResponse extends BaseResponse {
 所有 API 在发生错误时都返回统一的错误格式：
 
 ```typescript
-interface ErrorResponse extends BaseResponse {
-  success: false;
-  error: string;           // 错误类型
+interface ErrorResponse {
+  code: number;            // 错误状态码
   message: string;         // 详细错误信息
   timestamp: string;
 }
@@ -619,8 +631,7 @@ interface ErrorResponse extends BaseResponse {
 **示例错误响应**:
 ```json
 {
-  "success": false,
-  "error": "File not found",
+  "code": 400,
   "message": "The specified file does not exist",
   "timestamp": "2025-01-20T10:30:00.000Z"
 }

@@ -5,6 +5,7 @@
  */
 
 import { BaseResponse, ErrorResponse } from '../types/api-types.js';
+import { ErrorCode, ERROR_TO_HTTP_STATUS, ERROR_DESCRIPTIONS } from '../types/error-codes.js';
 
 /**
  * 响应工厂类 - 确保所有API响应都遵循标准格式
@@ -13,22 +14,33 @@ export class ResponseFactory {
   /**
    * 创建成功响应
    */
-  static success<T extends Record<string, any>>(data: T): BaseResponse & T {
+  static success<T extends Record<string, any>>(data: T, message: string = '操作成功'): { code: number; message: string; data: T; timestamp: string } {
     return {
-      success: true,
-      timestamp: new Date().toISOString(),
-      ...data
+      code: 200,
+      message,
+      data,
+      timestamp: new Date().toISOString()
     };
   }
 
   /**
    * 创建错误响应
    */
-  static error(error: string, message: string, statusCode: number = 500): ErrorResponse {
+  static error(message: string, statusCode: number = 500): { code: number; message: string; timestamp: string } {
     return {
-      success: false,
-      error,
+      code: statusCode,
       message,
+      timestamp: new Date().toISOString()
+    };
+  }
+
+  /**
+   * 根据错误代码创建错误响应
+   */
+  static errorWithCode(errorCode: ErrorCode, customMessage?: string): { code: number; message: string; timestamp: string } {
+    return {
+      code: ERROR_TO_HTTP_STATUS[errorCode],
+      message: customMessage || ERROR_DESCRIPTIONS[errorCode],
       timestamp: new Date().toISOString()
     };
   }
@@ -124,10 +136,7 @@ export class ResponseFactory {
       message: string;
     }>;
   }) {
-    return this.success({
-      message: '模型状态查询成功',
-      ...data
-    });
+    return this.success(data, '模型状态查询成功');
   }
 
   /**
@@ -141,38 +150,35 @@ export class ResponseFactory {
     status?: 'available' | 'unavailable' | 'unknown';
     availabilityMessage?: string;
   }, message: string) {
-    return this.success({
-      message,
-      model
-    });
+    return this.success({ model }, message);
   }
 
   /**
    * 创建参数验证错误响应
    */
   static validationError(field: string, message: string) {
-    return this.error('Validation Error', `${field}: ${message}`, 400);
+    return this.errorWithCode(ErrorCode.VALIDATION_ERROR, `${field}: ${message}`);
   }
 
   /**
    * 创建认证错误响应
    */
   static authError(message: string) {
-    return this.error('Authentication Error', message, 401);
+    return this.errorWithCode(ErrorCode.AUTH_REQUIRED, message);
   }
 
   /**
    * 创建资源未找到错误响应
    */
   static notFoundError(resource: string) {
-    return this.error('Not Found', `${resource} not found`, 404);
+    return this.error(`${resource} not found`, 404);
   }
 
   /**
    * 创建服务器内部错误响应
    */
   static internalError(message: string) {
-    return this.error('Internal Server Error', message, 500);
+    return this.errorWithCode(ErrorCode.INTERNAL_ERROR, message);
   }
 }
 
@@ -187,7 +193,8 @@ export class ResponseValidator {
     return (
       typeof response === 'object' &&
       response !== null &&
-      typeof response.success === 'boolean' &&
+      typeof response.code === 'number' &&
+      typeof response.message === 'string' &&
       typeof response.timestamp === 'string'
     );
   }
@@ -198,8 +205,7 @@ export class ResponseValidator {
   static validateErrorResponse(response: any): response is ErrorResponse {
     return (
       this.validateBaseResponse(response) &&
-      response.success === false &&
-      typeof response.error === 'string' &&
+      response.code !== 200 &&
       typeof response.message === 'string'
     );
   }
@@ -210,7 +216,7 @@ export class ResponseValidator {
   static validateSuccessResponse(response: any): response is BaseResponse {
     return (
       this.validateBaseResponse(response) &&
-      response.success === true
+      response.code === 200
     );
   }
 
@@ -268,7 +274,7 @@ export function standardizeResponse(target: any, propertyName: string, descripto
       const result = await method.apply(this, args);
       
       // 如果方法返回了响应对象，自动标准化
-      if (result && typeof result === 'object' && 'success' in result) {
+      if (result && typeof result === 'object' && 'code' in result) {
         return ResponseValidator.normalizeResponse(result);
       }
       

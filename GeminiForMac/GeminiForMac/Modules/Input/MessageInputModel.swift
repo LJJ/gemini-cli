@@ -12,15 +12,17 @@ struct ModelInfo {
     }
 }
 
-// API响应结构
-struct ModelStatusResponse: Codable {
-    let success: Bool
-    let data: ModelStatusData
-}
-
 struct ModelStatusData: Codable {
     let currentModel: String
-    let supportedModels: [SupportedModel]
+    let supportedModels: [String]  // 修改为字符串数组，匹配服务器端响应
+    let modelStatuses: [ModelStatus]  // 添加模型状态数组
+}
+
+struct ModelStatus: Codable {
+    let name: String
+    let available: Bool
+    let status: String
+    let message: String
 }
 
 struct SupportedModel: Codable {
@@ -28,14 +30,16 @@ struct SupportedModel: Codable {
     let isAvailable: Bool
 }
 
-struct ModelSwitchResponse: Codable {
-    let success: Bool
-    let data: ModelSwitchData?
-    let message: String?
-    let type: String?
+// 模型切换响应数据（用于BaseResponse<T>的泛型参数）
+struct ModelSwitchData: Codable {
+    let model: ModelSwitchInfo
 }
 
-struct ModelSwitchData: Codable {
+struct ModelSwitchInfo: Codable {
+    let name: String
     let previousModel: String
-    let newModel: String
+    let switched: Bool
+    let available: Bool?
+    let status: String?
+    let availabilityMessage: String?
 } 

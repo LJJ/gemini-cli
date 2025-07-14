@@ -10,6 +10,7 @@ import { FileService } from './server/files/FileService.js';
 import { CommandService } from './server/tools/CommandService.js';
 import { AuthService } from './server/auth/AuthService.js';
 import { configFactory } from './server/core/ConfigFactory.js';
+import { serverBootstrap } from './server/core/ServerBootstrap.js';
 
 /**
  * API服务器 - 重构后使用ConfigFactory管理依赖（优化版）
@@ -58,6 +59,10 @@ export class APIServer {
         timestamp: new Date().toISOString(),
         version: '0.1.9',
         configFactory: configFactory.isFactoryInitialized() ? 'initialized' : 'uninitialized',
+        bootstrap: {
+          initialized: serverBootstrap.isInitialized(),
+          defaultWorkspace: serverBootstrap.getDefaultWorkspace()
+        },
         authService: {
           configured: authService.isConfigured(),
           authenticated: authService.isUserAuthenticated()
@@ -176,7 +181,10 @@ export class APIServer {
     });
   }
 
-  public start() {
+  public async start() {
+    // 在启动HTTP服务器之前执行预初始化
+    await serverBootstrap.initialize();
+    
     const app = this.serverConfig.getApp();
     const port = this.serverConfig.getPort();
     
@@ -189,8 +197,14 @@ export class APIServer {
       console.log(`⚡ Command execution: http://localhost:${port}/execute-command`);
       console.log(`🤖 Model management: http://localhost:${port}/model/status | http://localhost:${port}/model/switch`);
       console.log(`🏭 ConfigFactory: ${configFactory.isFactoryInitialized() ? 'initialized' : 'uninitialized'}`);
+      console.log(`🔧 Bootstrap: ${serverBootstrap.isInitialized() ? 'completed' : 'failed'}`);
       
-      // 初始化全局AuthService，但不设置Config（等待第一次请求）
+      const defaultWorkspace = serverBootstrap.getDefaultWorkspace();
+      if (defaultWorkspace) {
+        console.log(`📁 Default workspace: ${defaultWorkspace}`);
+      }
+      
+      // 初始化全局AuthService
       const authService = this.getAuthService();
       console.log(`🔐 AuthService: ${authService.isConfigured() ? 'configured' : 'not configured'}`);
     });
@@ -215,7 +229,16 @@ export class APIServer {
 if (import.meta.url === `file://${process.argv[1]}`) {
   const port = parseInt(process.env.PORT || '8080', 10);
   const server = new APIServer(port);
-  server.start();
+  
+  // 使用async立即执行函数来处理异步启动
+  (async () => {
+    try {
+      await server.start();
+    } catch (error) {
+      console.error('❌ Failed to start server:', error);
+      process.exit(1);
+    }
+  })();
 
   // 处理优雅关闭
   process.on('SIGINT', () => {

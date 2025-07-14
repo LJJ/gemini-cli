@@ -65,28 +65,36 @@ export class GeminiService {
         // 发送错误事件而不是标准HTTP响应
         this.streamingEventService.sendErrorEvent(res, 'Message is required', ErrorCode.VALIDATION_ERROR);
         this.streamingEventService.sendCompleteEvent(res, false, '请求验证失败');
-        res.end();
         return;
       }
 
-      // 验证必需的workspacePath
-      if (!workspacePath) {
-        this.streamingEventService.setupStreamingResponse(res);
-        this.streamingEventService.sendErrorEvent(res, 'WorkspacePath is required', ErrorCode.VALIDATION_ERROR);
-        this.streamingEventService.sendCompleteEvent(res, false, '工作区路径未提供');
-        res.end();
-        return;
+      // workspacePath 现在是可选的，如果没有提供，使用预初始化的默认工作区
+      let effectiveWorkspacePath = workspacePath;
+      
+      if (!effectiveWorkspacePath) {
+        // 尝试使用预初始化的默认工作区
+        const { serverBootstrap } = await import('./ServerBootstrap.js');
+        effectiveWorkspacePath = serverBootstrap.getDefaultWorkspace();
+        
+        if (!effectiveWorkspacePath) {
+          // 如果仍然没有工作区，使用当前目录
+          effectiveWorkspacePath = process.cwd();
+          console.log('GeminiService: 使用当前目录作为工作区:', effectiveWorkspacePath);
+        } else {
+          console.log('GeminiService: 使用预初始化的默认工作区:', effectiveWorkspacePath);
+        }
       }
 
       console.log('Processing chat request', { 
         message: message.substring(0, 100),
         filePaths: filePaths.length,
-        requestedWorkspace: workspacePath,
+        requestedWorkspace: workspacePath || '(默认)',
+        effectiveWorkspace: effectiveWorkspacePath,
         currentWorkspace: this.clientManager.getCurrentWorkspace()
       });
 
       // 使用ClientManager获取或创建客户端（会自动处理ConfigFactory）
-      await this.clientManager.getOrCreateClient(workspacePath);
+      await this.clientManager.getOrCreateClient(effectiveWorkspacePath);
 
       // 委托给聊天处理器
       await this.chatHandler.handleStreamingChat(message, filePaths, res);
@@ -109,7 +117,6 @@ export class GeminiService {
         errorCode
       );
       this.streamingEventService.sendCompleteEvent(res, false, '处理请求时发生错误');
-      res.end();
     }
   }
 
@@ -132,7 +139,7 @@ export class GeminiService {
 
       // 检查是否有ConfigFactory初始化
       if (!configFactory.isFactoryInitialized()) {
-        return res.status(400).json(ResponseFactory.validationError('system', 'System not initialized. Please start a chat first.'));
+        return res.status(400).json(ResponseFactory.errorWithCode(ErrorCode.CLIENT_NOT_INITIALIZED, 'System not initialized. Please start a chat first.'));
       }
 
       // 委托给工具协调器处理
@@ -186,18 +193,6 @@ export class GeminiService {
   }
 
   /**
-   * 清理服务
-   */
-  public async cleanup() {
-    console.log('GeminiService: 清理服务');
-    try {
-      await this.clientManager.cleanup();
-    } catch (error) {
-      console.error('Error during GeminiService cleanup:', error);
-    }
-  }
-
-  /**
    * 处理模型状态查询
    */
   public async handleModelStatus(req: express.Request, res: express.Response) {
@@ -206,14 +201,14 @@ export class GeminiService {
 
       // 检查是否有ConfigFactory初始化
       if (!configFactory.isFactoryInitialized()) {
-        return res.status(400).json(ResponseFactory.validationError('system', 'System not initialized. Please start a chat first.'));
+        return res.status(400).json(ResponseFactory.errorWithCode(ErrorCode.CLIENT_NOT_INITIALIZED, 'System not initialized. Please start a chat first.'));
       }
 
       const container = configFactory.getCurrentWorkspaceContainer();
       const config = container.config;
       
       if (!config) {
-        return res.status(400).json(ResponseFactory.validationError('system', 'Config not initialized.'));
+        return res.status(400).json(ResponseFactory.errorWithCode(ErrorCode.CLIENT_NOT_INITIALIZED, 'Config not initialized.'));
       }
 
       const currentModel = config.getModel();
@@ -235,7 +230,7 @@ export class GeminiService {
         })
       );
       
-      res.json(ResponseFactory.success({
+      res.json(ResponseFactory.modelStatus({
         currentModel: currentModel,
         supportedModels: supportedModels,
         modelStatuses: modelStatuses
@@ -277,14 +272,11 @@ export class GeminiService {
       
       // 如果模型相同，不需要切换
       if (currentModel === model) {
-        return res.json(ResponseFactory.success({
-          message: `Already using model: ${model}`,
-          model: {
-            name: model,
-            previousModel: currentModel,
-            switched: false
-          }
-        }));
+        return res.json(ResponseFactory.modelSwitch({
+          name: model,
+          previousModel: currentModel,
+          switched: false
+        }, `Already using model: ${model}`));
       }
 
       // 验证模型名称是否有效
@@ -300,17 +292,14 @@ export class GeminiService {
       const authService = configFactory.getAuthService();
       const modelAvailability = await this.checkModelAvailability(model, authService);
       
-      res.json(ResponseFactory.success({
-        message: `Model switched successfully from ${currentModel} to ${model}`,
-        model: {
-          name: model,
-          previousModel: currentModel,
-          switched: true,
-          available: modelAvailability.available,
-          status: modelAvailability.status,
-          availabilityMessage: modelAvailability.message
-        }
-      }));
+      res.json(ResponseFactory.modelSwitch({
+        name: model,
+        previousModel: currentModel,
+        switched: true,
+        available: modelAvailability.available,
+        status: modelAvailability.status,
+        availabilityMessage: modelAvailability.message
+      }, `Model switched successfully from ${currentModel} to ${model}`));
       
     } catch (error) {
       console.error('Error in handleModelSwitch:', error);
