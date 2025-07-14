@@ -16,11 +16,7 @@ struct MainView: View {
     var body: some View {
         HSplitView {
             // 文件浏览器
-            HStack {
-                FileExplorerView()
-                    .frame(minWidth: 200, maxWidth: 400)
-                Spacer(minLength: 0)
-            }
+            FileExplorerView()
             
             // 聊天界面
             VStack(spacing: 0) {
