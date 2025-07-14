@@ -130,21 +130,17 @@ class AuthService: ObservableObject {
                 googleCloudProject: googleCloudProject,
                 googleCloudLocation: googleCloudLocation
             ) {
-                if response.success {
-                    // 根据认证类型处理
-                    switch authType {
-                    case .loginWithGoogle:
-                        // Google 登录需要服务器端处理
-                        await handleGoogleLogin()
-                        
-                    case .useGemini, .useVertexAI:
-                        // API Key 认证直接完成
-                        authStatus = .authenticated
-                        showAuthDialog = false
-                    }
-                } else {
-                    authStatus = .error("认证配置失败")
-                    errorMessage = "认证配置失败"
+                // 认证配置成功（服务器返回了响应就表示成功）
+                // 根据认证类型处理
+                switch authType {
+                case .loginWithGoogle:
+                    // Google 登录需要服务器端处理
+                    await handleGoogleLogin()
+                    
+                case .useGemini, .useVertexAI:
+                    // API Key 认证直接完成
+                    authStatus = .authenticated
+                    showAuthDialog = false
                 }
             } else {
                 authStatus = .error("无法连接到服务器")
@@ -164,17 +160,12 @@ class AuthService: ObservableObject {
         let apiService = APIService()
         
         if let response = await apiService.startGoogleLogin() {
-            print("收到 Google 登录响应: success=\(response.success)")
+            print("收到 Google 登录响应: message=\(response.message)")
             
-            if response.success {
-                print("Google 登录成功，更新认证状态")
-                authStatus = .authenticated
-                showAuthDialog = false
-            } else {
-                print("Google 登录失败")
-                authStatus = .error("Google 登录失败")
-                errorMessage = "Google 登录失败"
-            }
+            // Google 登录成功（服务器返回了响应就表示成功）
+            print("Google 登录成功，更新认证状态")
+            authStatus = .authenticated
+            showAuthDialog = false
         } else {
             print("Google 登录请求失败，没有收到响应")
             authStatus = .error("Google 登录失败，请检查网络连接")

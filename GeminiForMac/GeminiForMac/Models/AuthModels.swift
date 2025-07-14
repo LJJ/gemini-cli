@@ -76,7 +76,7 @@ struct AuthConfig: Codable {
 
 // 认证响应数据
 struct AuthResponseData: Codable {
-    let success: Bool
+    let message: String
 }
 
 // 认证状态数据
