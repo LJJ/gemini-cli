@@ -97,6 +97,15 @@ export class ChatHandler {
       
     } catch (error) {
       console.error('Error in handleStreamingChat:', error);
+      
+      // 检查是否是用户取消操作
+      if (error instanceof Error && error.name === 'AbortError') {
+        console.log('聊天被用户取消');
+        // 用户取消不发送错误事件，直接发送完成事件
+        this.streamingEventService.sendCompleteEvent(res);
+        return;
+      }
+      
       const errorCode = error instanceof Error && (error as any).code ? (error as any).code : ErrorCode.STREAM_ERROR;
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       this.streamingEventService.sendErrorEvent(
@@ -185,8 +194,9 @@ export class ChatHandler {
           break;
           
         case GeminiEventType.UserCancelled:
-          this.streamingEventService.sendErrorEvent(res, '操作被取消', ErrorCode.INTERNAL_ERROR);
-          break;
+          console.log('用户取消了聊天');
+          // 用户取消不应该作为错误处理，直接返回即可
+          return;
           
         case GeminiEventType.ChatCompressed:
           console.log('聊天历史被压缩:', event.value);
