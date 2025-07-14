@@ -253,7 +253,7 @@ export class ConfigFactory {
           sessionId: params.sessionId || `api-server-${Date.now()}`, // 总是使用新的sessionId
           targetDir: params.targetDir, // 确保使用当前请求的targetDir
           debugMode: params.debugMode,
-          model: params.model,
+          model: params.model || cachedConfig.model, // 优先使用传入的模型，否则使用缓存的模型
           proxy: params.proxy,
           cwd: params.cwd
         });

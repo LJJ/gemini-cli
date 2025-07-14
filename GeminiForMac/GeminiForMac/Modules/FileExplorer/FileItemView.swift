@@ -73,16 +73,19 @@ struct FileItemView: View {
                 }
             }
             .contentShape(Rectangle())
-            .onTapGesture(count: 2) {
-                print("👆👆 双击: \(item.name)")
-                onDoubleTap()
-            }
-            .simultaneousGesture(
-                TapGesture(count: 1)
+            .gesture(
+                TapGesture(count: 2)
                     .onEnded {
-                        print("👆 单击: \(item.name)")
-                        onTap()
+                        print("👆👆 双击: \(item.name)")
+                        onDoubleTap()
                     }
+                    .exclusively(
+                        before: TapGesture(count: 1)
+                            .onEnded {
+                                print("👆 单击: \(item.name)")
+                                onTap()
+                            }
+                    )
             )
         }
         .padding(.horizontal, 8)

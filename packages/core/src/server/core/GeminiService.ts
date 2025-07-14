@@ -287,6 +287,8 @@ export class GeminiService {
 
       // 切换模型
       config.setModel(model);
+      // 同步ClientManager的模型状态
+      this.clientManager.setCurrentModel(model);
       
       // 检查新模型的可用性
       const authService = configFactory.getAuthService();
