@@ -16,8 +16,11 @@ struct MainView: View {
     var body: some View {
         HSplitView {
             // 文件浏览器
-            FileExplorerView()
-                .frame(minWidth: 200, maxWidth: 400)
+            HStack {
+                FileExplorerView()
+                    .frame(minWidth: 200, maxWidth: 400)
+                Spacer(minLength: 0)
+            }
             
             // 聊天界面
             VStack(spacing: 0) {
@@ -42,13 +45,13 @@ struct MainView: View {
                 }
 
                 // 状态消息
-                if let statusMessage = chatService.statusMessage {
+                if chatService.isLoading {
                     HStack {
                         if chatService.isLoading { // 如果正在加载，显示 ProgressView
                             ProgressView()
                                 .scaleEffect(0.8)
                         }
-                        Text(statusMessage)
+                        Text(chatService.statusMessage ?? "正在处理...")
                             .font(.caption)
                             .foregroundColor(.secondary)
                         Spacer()
