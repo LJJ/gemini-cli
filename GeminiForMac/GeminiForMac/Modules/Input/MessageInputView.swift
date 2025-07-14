@@ -16,17 +16,26 @@ struct MessageInputView: View {
     var body: some View {
         VStack(spacing: 12) {
             // 顶部输入框
-            TextEditor(text: $messageInputVM.messageText)
-                .focused($isTextFieldFocused)
-                .frame(height: messageInputVM.textHeight) // 使用动态高度
-                .padding(8) // Add padding to mimic TextField's inner padding
-                .overlay(
-                    RoundedRectangle(cornerRadius: 6)
-                        .stroke(Color.gray.opacity(0.3), lineWidth: 1)
-                )
-                .scrollContentBackground(.hidden) // Hide default TextEditor background
-                .background(Color(NSColor.controlBackgroundColor)) // Set background color
-                .animation(.easeInOut(duration: 0.2), value: messageInputVM.textHeight) // 添加高度变化动画
+            GeometryReader { geometry in
+                TextEditor(text: $messageInputVM.messageText)
+                    .focused($isTextFieldFocused)
+//                    .frame(height: messageInputVM.textHeight) // 使用动态高度
+                    .padding(8) // Add padding to mimic TextField's inner padding
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 6)
+                            .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+                    )
+                    .scrollContentBackground(.hidden) // Hide default TextEditor background
+                    .background(Color(NSColor.controlBackgroundColor)) // Set background color
+                    .animation(.easeInOut(duration: 0.2), value: messageInputVM.textHeight) // 添加高度变化动画
+                    .onAppear {
+                        messageInputVM.updateTextWidth(geometry.size.width)
+                    }
+                    .onChange(of: geometry.size.width) { newWidth in
+                        messageInputVM.updateTextWidth(newWidth)
+                    }
+            }
+            .frame(height: messageInputVM.textHeight)
             
             // 底部控制栏
             HStack(spacing: 12) {
