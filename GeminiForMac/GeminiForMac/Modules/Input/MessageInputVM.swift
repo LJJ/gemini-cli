@@ -13,6 +13,7 @@ import Factory
 class MessageInputVM: ObservableObject {
     @Injected(\.fileExplorerService) private var fileExplorerService
     @Injected(\.chatService) private var chatService
+    private let apiService = APIService()
     
     @Published var messageText: String = "" {
         didSet {
@@ -91,19 +92,26 @@ class MessageInputVM: ObservableObject {
         isLoadingModels = true
         
         do {
-            let url = URL(string: APIConfig.URLs.modelStatus)!
-            let (data, _) = try await URLSession.shared.data(from: url)
+            // 使用 APIService 的底层方法
+            let baseResponse: BaseResponse<ModelStatusData>? = await apiService.getRequest(path: "/model/status")
             
-            let response = try JSONDecoder().decode(ModelStatusResponse.self, from: data)
-            
-            // 更新支持的模型列表
-            supportedModels = response.data.supportedModels.map { model in
-                ModelInfo(name: model.name, isAvailable: model.isAvailable)
+            if let response = baseResponse {
+                // 更新支持的模型列表 - 使用 modelStatuses 来获取可用性信息
+                supportedModels = response.data.modelStatuses.map { modelStatus in
+                    ModelInfo(name: modelStatus.name, isAvailable: modelStatus.available)
+                }
+                
+                // 更新当前模型
+                currentModel = ModelInfo(name: response.data.currentModel, isAvailable: true)
+                print(currentModel)
+            } else {
+                // 设置默认值
+                currentModel = ModelInfo(name: "gemini-2.5-flash", isAvailable: true)
+                supportedModels = [
+                    ModelInfo(name: "gemini-2.5-pro", isAvailable: false),
+                    ModelInfo(name: "gemini-2.5-flash", isAvailable: true)
+                ]
             }
-            
-            // 更新当前模型
-            currentModel = ModelInfo(name: response.data.currentModel, isAvailable: true)
-            
         } catch {
             print("获取模型状态失败: \(error)")
             // 设置默认值
@@ -123,22 +131,15 @@ class MessageInputVM: ObservableObject {
         }
         
         do {
-            let url = URL(string: APIConfig.URLs.modelSwitch)!
-            var request = URLRequest(url: url)
-            request.httpMethod = "POST"
-            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            // 使用 APIService 的底层方法
+            let body: [String: Any] = ["model": modelName]
+            let baseResponse: BaseResponse<ModelSwitchData>? = await apiService.postRequest(path: "/model/switch", body: body)
             
-            let body = ["model": modelName]
-            request.httpBody = try JSONEncoder().encode(body)
-            
-            let (data, _) = try await URLSession.shared.data(for: request)
-            let response = try JSONDecoder().decode(ModelSwitchResponse.self, from: data)
-            
-            if response.success {
+            if let response = baseResponse {
                 currentModel = targetModel
                 showModelMenu = false
             } else {
-                print(response.message ?? "切换模型失败")
+                print("切换模型失败")
             }
             
         } catch {

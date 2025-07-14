@@ -15,14 +15,12 @@ struct CommandRequest: Codable {
     let cwd: String?
 }
 
-// 命令响应 - 更新为标准化格式
-struct CommandResponse: Codable {
-    let success: Bool
+// MARK: - 业务数据模型（用于 BaseResponse<T> 的泛型参数）
+
+// 命令执行数据
+struct CommandData: Codable {
     let command: String
     let output: String
     let stderr: String?  // 重命名为stderr避免与BaseResponse.error冲突
     let exitCode: Int
-    let timestamp: String
-    let error: String?
-    let message: String?
 } 

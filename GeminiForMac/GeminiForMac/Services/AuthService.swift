@@ -143,8 +143,8 @@ class AuthService: ObservableObject {
                         showAuthDialog = false
                     }
                 } else {
-                    authStatus = .error(response.message)
-                    errorMessage = response.message
+                    authStatus = .error("认证配置失败")
+                    errorMessage = "认证配置失败"
                 }
             } else {
                 authStatus = .error("无法连接到服务器")
@@ -164,16 +164,16 @@ class AuthService: ObservableObject {
         let apiService = APIService()
         
         if let response = await apiService.startGoogleLogin() {
-            print("收到 Google 登录响应: success=\(response.success), message=\(response.message)")
+            print("收到 Google 登录响应: success=\(response.success)")
             
             if response.success {
                 print("Google 登录成功，更新认证状态")
                 authStatus = .authenticated
                 showAuthDialog = false
             } else {
-                print("Google 登录失败: \(response.message)")
-                authStatus = .error(response.message)
-                errorMessage = response.message
+                print("Google 登录失败")
+                authStatus = .error("Google 登录失败")
+                errorMessage = "Google 登录失败"
             }
         } else {
             print("Google 登录请求失败，没有收到响应")

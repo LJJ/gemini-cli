@@ -165,7 +165,6 @@ struct ToolResultEventData: Codable {
     let name: ToolName
     let result: String
     let displayResult: String
-    let success: Bool
     let error: String?
 }
 
@@ -192,7 +191,6 @@ struct CommandArgs:Codable {
 
 // 7. 完成事件数据
 struct CompleteEventData: Codable {
-    let success: Bool
     let message: String?
 }
 

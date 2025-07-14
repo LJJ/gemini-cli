@@ -128,7 +128,7 @@ class ChatService: ObservableObject {
             switch data.name {
             case .writeFile, .replace, .edit:
                 confirmationType = .edit
-            case .executeCommand:
+            case .executeCommand, .runShellCommand:
                 confirmationType = .exec
             default:
                 confirmationType = .info
@@ -236,7 +236,7 @@ class ChatService: ObservableObject {
                     statusMessage = nil
                 }
             } else {
-                errorMessage = "确认操作失败: \(response.message)"
+                errorMessage = "确认操作失败"
             }
         } else {
             errorMessage = "发送确认失败，请检查网络连接。"
@@ -276,7 +276,7 @@ class ChatService: ObservableObject {
         do {
             // 发送取消请求到后端
             let response = await apiService.sendPostRequest(path: "/cancelChat", body: [String: Any]())
-            if response?.success == true {
+            if response?.code == 200 {
                 print("ChatService: 聊天取消请求发送成功")
                 // 成功发送取消请求后，清除所有待处理的工具确认
                 clearAllConfirmations()
