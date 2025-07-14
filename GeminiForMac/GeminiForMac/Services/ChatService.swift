@@ -223,15 +223,17 @@ class ChatService: ObservableObject {
             outcome: outcome
         ) {
             if response.success {
-                
-                // 等待一段时间，让服务器处理工具调用
-                try? await Task.sleep(nanoseconds: 1_000_000_000) // 1秒
-                
-                // 更新消息状态
-                statusMessage = "✅ 工具调用执行完成"
-                // 等待一段时间，让用户看到状态，然后清空
-                try? await Task.sleep(nanoseconds: 1_000_000_000) // 1秒
-                statusMessage = nil
+                // 只有在不是取消的情况下才显示成功消息
+                if outcome != .cancel {
+                    // 等待一段时间，让服务器处理工具调用
+                    try? await Task.sleep(nanoseconds: 1_000_000_000) // 1秒
+                    
+                    // 更新消息状态
+                    statusMessage = "✅ 工具调用执行完成"
+                    // 等待一段时间，让用户看到状态，然后清空
+                    try? await Task.sleep(nanoseconds: 1_000_000_000) // 1秒
+                    statusMessage = nil
+                }
             } else {
                 errorMessage = "确认操作失败: \(response.message)"
             }
@@ -254,6 +256,7 @@ class ChatService: ObservableObject {
         pendingToolConfirmation = nil
         showToolConfirmation = false
         isProcessingConfirmation = false
+        statusMessage = nil // 确保状态消息被清除
         
         // 处理队列中的下一个确认
         processNextConfirmation()

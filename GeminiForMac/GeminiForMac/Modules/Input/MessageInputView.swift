@@ -19,7 +19,10 @@ struct MessageInputView: View {
             GeometryReader { geometry in
                 TextEditor(text: $messageInputVM.messageText)
                     .focused($isTextFieldFocused)
-//                    .frame(height: messageInputVM.textHeight) // 使用动态高度
+                    .onSubmit({
+                        messageInputVM.sendMessage()
+                        isTextFieldFocused = false
+                    })
                     .padding(8) // Add padding to mimic TextField's inner padding
                     .overlay(
                         RoundedRectangle(cornerRadius: 6)
