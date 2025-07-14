@@ -9,7 +9,7 @@ import Foundation
 
 // MARK: - API服务类
 final class APIService: Sendable {
-    private let baseURL = "http://localhost:8080"
+    private let baseURL = APIConfig.baseURL  // 使用 APIConfig 的配置
     private let decoder: JSONDecoder
     
     init() {
