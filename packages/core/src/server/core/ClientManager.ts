@@ -30,9 +30,27 @@ import * as path from 'path';
 export class ClientManager implements WorkspaceAwareService {
   private currentWorkspacePath: string | null = null;
   private currentContainer: WorkspaceServiceContainer | null = null;
+  private currentModel: string | null = null;
 
   constructor() {
     // 使用ConfigFactory管理依赖，认证服务全局管理
+  }
+
+  /**
+   * 设置当前模型
+   * @param model 模型名称
+   */
+  public setCurrentModel(model: string): void {
+    this.currentModel = model;
+    console.log('ClientManager: 设置当前模型为', model);
+  }
+
+  /**
+   * 获取当前模型
+   * @returns 当前模型名称
+   */
+  public getCurrentModel(): string {
+    return this.currentModel || DEFAULT_GEMINI_FLASH_MODEL;
   }
 
   /**
@@ -197,11 +215,11 @@ export class ClientManager implements WorkspaceAwareService {
     console.log('ClientManager: 初始化工作区', { workspacePath });
 
     try {
-      // 创建工厂配置参数
+      // 创建工厂配置参数，使用当前用户选择的模型
       const factoryParams: FactoryConfigParams = {
         targetDir: workspacePath,
         debugMode: false,
-        model: DEFAULT_GEMINI_FLASH_MODEL,
+        model: this.getCurrentModel(),
         proxy: this.getProxyConfig(),
         cwd: workspacePath,
       };
