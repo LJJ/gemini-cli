@@ -91,6 +91,7 @@ struct ToolConfirmationDetails: Codable {
     let serverName: String?
     let toolName: ToolName
     let toolDisplayName: String?
+    let description: String?
 }
 
 // 工具确认请求

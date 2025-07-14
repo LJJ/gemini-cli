@@ -4,12 +4,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Config, ConfigParameters } from './config.js';
-import { AuthService } from '../server/auth/AuthService.js';
-import { GeminiClient } from '../core/client.js';
-import { createToolRegistry } from './config.js';
-import { DEFAULT_GEMINI_FLASH_MODEL } from './models.js';
-import { ErrorCode, createError } from '../server/types/error-codes.js';
+import { Config, ConfigParameters } from '../../config/config.js';
+import { AuthService } from '../../server/auth/AuthService.js';
+import { GeminiClient } from '../../core/client.js';
+import { createToolRegistry } from '../../config/config.js';
+import { DEFAULT_GEMINI_FLASH_MODEL } from '../../config/models.js';
+import { ErrorCode, createError } from '../../server/types/error-codes.js';
 
 /**
  * 工作区相关的服务容器 - 只包含与workspace相关的服务

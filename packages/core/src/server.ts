@@ -9,7 +9,7 @@ import { GeminiService } from './server/core/GeminiService.js';
 import { FileService } from './server/files/FileService.js';
 import { CommandService } from './server/tools/CommandService.js';
 import { AuthService } from './server/auth/AuthService.js';
-import { configFactory } from './config/ConfigFactory.js';
+import { configFactory } from './server/core/ConfigFactory.js';
 
 /**
  * API服务器 - 重构后使用ConfigFactory管理依赖（优化版）
