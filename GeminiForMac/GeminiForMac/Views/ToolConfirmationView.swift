@@ -12,6 +12,16 @@ struct ToolConfirmationView: View {
     let onConfirm: (ToolConfirmationOutcome) -> Void
     let onCancel: () -> Void
     
+    // 判断是否需要大窗口进行代码审查
+    private var needsLargeWindow: Bool {
+        switch confirmation.confirmationDetails.toolName {
+        case .replace, .writeFile:
+            return true
+        default:
+            return false
+        }
+    }
+    
     var body: some View {
         VStack(spacing: 16) {
             // 标题
@@ -73,15 +83,28 @@ struct ToolConfirmationView: View {
                 case .replace:
                     // replace tool: 显示 oldStr 和 newStr 的对比
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("代码变更:")
-                            .font(.subheadline)
-                            .fontWeight(.medium)
+                        HStack {
+                            Text("代码变更:")
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                            
+                            Spacer()
+                            
+                            Text("请仔细审查代码变更")
+                                .font(.caption)
+                                .foregroundColor(.orange)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 2)
+                                .background(Color.orange.opacity(0.1))
+                                .cornerRadius(4)
+                        }
                         
                         SideBySideDiffView(
                             oldContent: confirmation.confirmationDetails.oldStr ?? "",
                             newContent: confirmation.confirmationDetails.newStr ?? "",
                             filename: confirmation.confirmationDetails.fileName
                         )
+                        .frame(height: 400)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     
@@ -89,19 +112,35 @@ struct ToolConfirmationView: View {
                     // write_file tool: 只显示 content
                     if let content = confirmation.confirmationDetails.content, !content.isEmpty {
                         VStack(alignment: .leading, spacing: 8) {
-                            Text("将要写入的内容:")
-                                .font(.subheadline)
-                                .fontWeight(.medium)
+                            HStack {
+                                Text("将要写入的内容:")
+                                    .font(.subheadline)
+                                    .fontWeight(.medium)
+                                
+                                Spacer()
+                                
+                                Text("请审查文件内容")
+                                    .font(.caption)
+                                    .foregroundColor(.green)
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 2)
+                                    .background(Color.green.opacity(0.1))
+                                    .cornerRadius(4)
+                            }
                             
                             ScrollView {
                                 Text(content)
-                                    .font(.system(.body, design: .monospaced))
+                                    .font(.system(.caption, design: .monospaced))
                                     .padding(12)
-                                    .background(Color.green.opacity(0.1))
+                                    .background(Color.green.opacity(0.05))
                                     .cornerRadius(6)
                                     .frame(maxWidth: .infinity, alignment: .leading)
                             }
-                            .frame(maxHeight: 300)
+                            .frame(height: 400)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 6)
+                                    .stroke(Color.green.opacity(0.3), lineWidth: 1)
+                            )
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
                     }
@@ -223,6 +262,12 @@ struct ToolConfirmationView: View {
         .background(Color(NSColor.controlBackgroundColor))
         .cornerRadius(12)
         .shadow(radius: 10)
+        .frame(
+            minWidth: needsLargeWindow ? 900 : 400,
+            maxWidth: needsLargeWindow ? 1200 : 600,
+            minHeight: needsLargeWindow ? 600 : 200,
+            maxHeight: needsLargeWindow ? 800 : 400
+        )
     }
 }
 
