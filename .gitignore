@@ -42,3 +42,4 @@ packages/vscode-ide-companion/*.vsix
 
 
 GeminiForMac/build/
+macPackage/bin/
