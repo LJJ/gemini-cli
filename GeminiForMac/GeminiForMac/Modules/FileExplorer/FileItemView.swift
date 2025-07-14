@@ -11,41 +11,43 @@ import SwiftUI
 struct FileItemView: View {
     let item: DirectoryItem
     let isSelected: Bool
-    let isMultiSelected: Bool
     let isExpanded: Bool
-    let isMultiSelectMode: Bool
+    let level: Int
     let onTap: () -> Void
     let onDoubleTap: () -> Void
     let onToggleExpansion: () -> Void
     
     var body: some View {
         HStack(spacing: 4) {
-            // 多选指示器（仅在多选模式且为文件时显示）
-            if isMultiSelectMode && item.type == "file" {
-                Image(systemName: isMultiSelected ? "checkmark.circle.fill" : "circle")
-                    .font(.caption2)
-                    .foregroundColor(isMultiSelected ? .blue : .secondary)
-                    .frame(width: 12, height: 12)
-            } else {
-                // 展开/折叠按钮（仅对文件夹）
-                if item.type == "directory" {
-                    Button(action: onToggleExpansion) {
-                        Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
-                            .font(.caption2)
-                            .foregroundColor(.secondary)
-                            .frame(width: 12, height: 12)
-                    }
-                    .buttonStyle(.plain)
-                    .allowsHitTesting(true)
-                } else {
-                    // 文件占位符
-                    Rectangle()
-                        .fill(Color.clear)
-                        .frame(width: 12, height: 12)
-                }
+            // 层级缩进
+            ForEach(0..<level, id: \.self) { _ in
+                Rectangle()
+                    .fill(Color.clear)
+                    .frame(width: 16, height: 1)
             }
             
-            // 文件图标和名称区域
+            // 展开/折叠按钮（仅对文件夹）
+            if item.type == "directory" {
+                Button(action: {
+                    print("🔽 展开按钮点击: \(item.name)")
+                    onToggleExpansion()
+                }) {
+                    Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                        .frame(width: 12, height: 12)
+                }
+                .buttonStyle(.plain)
+                .frame(width: 20, height: 20)
+                .contentShape(Rectangle())
+            } else {
+                // 文件占位符
+                Rectangle()
+                    .fill(Color.clear)
+                    .frame(width: 20, height: 20)
+            }
+            
+            // 文件图标和名称区域（可点击的主要区域）
             HStack(spacing: 4) {
                 // 文件图标
                 Image(systemName: iconName)
@@ -59,6 +61,16 @@ struct FileItemView: View {
                     .foregroundColor(.primary)
                     .lineLimit(1)
                     .truncationMode(.middle)
+                
+                Spacer()
+                
+                // 选中状态图标（右侧）
+                if isSelected {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.caption2)
+                        .foregroundColor(.blue)
+                        .frame(width: 16, height: 16)
+                }
             }
             .contentShape(Rectangle())
             .onTapGesture(count: 2) {
@@ -72,8 +84,6 @@ struct FileItemView: View {
                         onTap()
                     }
             )
-            
-            Spacer()
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 4)
@@ -82,9 +92,7 @@ struct FileItemView: View {
     
     // 背景颜色
     private var backgroundColor: Color {
-        if isMultiSelectMode && isMultiSelected {
-            return Color.blue.opacity(0.2)
-        } else if isSelected {
+        if isSelected {
             return Color.blue.opacity(0.1)
         } else {
             return Color.clear
