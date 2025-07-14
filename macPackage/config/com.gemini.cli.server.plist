@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.gemini.cli.server</string>
+    
+    <key>ProgramArguments</key>
+    <array>
+        <string>$HOME/Library/Application Support/GeminiForMac/bin/node20-macos-arm64</string>
+        <string>$HOME/Library/Application Support/GeminiForMac/bin/gemini-server.js</string>
+    </array>
+    
+    <key>RunAtLoad</key>
+    <true/>
+    
+    <key>KeepAlive</key>
+    <true/>
+    
+    <key>StandardOutPath</key>
+    <string>$HOME/Library/Application Support/GeminiForMac/logs/gemini-server.log</string>
+    
+    <key>StandardErrorPath</key>
+    <string>$HOME/Library/Application Support/GeminiForMac/logs/gemini-server-error.log</string>
+    
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PORT</key>
+        <string>8080</string>
+        <key>NODE_ENV</key>
+        <string>production</string>
+    </dict>
+    
+    <key>WorkingDirectory</key>
+    <string>$HOME/Library/Application Support/GeminiForMac</string>
+</dict>
+</plist> 

@@ -96,7 +96,16 @@ export class ChatHandler {
       this.streamingEventService.sendCompleteEvent(res);
       
     } catch (error) {
-      console.error('Error in handleStreamingChat:', error);
+      // 安全的错误日志 - 避免循环引用问题
+      try {
+        console.error('Error in handleStreamingChat:', error);
+      } catch (logError) {
+        console.error('Error in handleStreamingChat (simplified):', {
+          message: error instanceof Error ? error.message : 'Unknown error',
+          name: error instanceof Error ? error.name : 'Unknown',
+          logError: logError instanceof Error ? logError.message : 'Unknown log error'
+        });
+      }
       
       // 检查是否是用户取消操作
       if (error instanceof Error && error.name === 'AbortError') {
@@ -183,8 +192,19 @@ export class ChatHandler {
           break;
           
         case GeminiEventType.Error:
-          // 改进错误日志 - 直接显示完整错误信息
-          console.error('❌ Gemini API 错误详情:', JSON.stringify(event.value, null, 2));
+          // 安全的错误日志 - 避免循环引用问题
+          try {
+            const errorInfo = {
+              message: event.value.error?.message || '未知错误',
+              status: event.value.error?.status,
+              code: (event.value.error as any)?.code,
+              details: (event.value.error as any)?.details
+            };
+            console.error('❌ Gemini API 错误详情:', JSON.stringify(errorInfo, null, 2));
+          } catch (stringifyError) {
+            console.error('❌ Gemini API 错误:', event.value.error?.message || 'Unknown error');
+            console.error('序列化错误对象失败:', stringifyError instanceof Error ? stringifyError.message : 'Unknown stringify error');
+          }
           this.streamingEventService.sendErrorEvent(
             res,
             event.value.error.message,
