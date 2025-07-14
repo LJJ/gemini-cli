@@ -10,7 +10,7 @@ import Foundation
 struct APIConfig {
     // MARK: - 基础配置
     static let baseHost = "localhost"
-    static let basePort = 8080
+    static let basePort = 8080  // 保持与当前实现一致
     static let baseScheme = "http"
     
     // MARK: - 基础URL
@@ -24,6 +24,7 @@ struct APIConfig {
         static let modelSwitch = "/model/switch"
         static let chat = "/chat"
         static let auth = "/auth"
+        static let status = "/status"  // 添加状态检查路径
     }
     
     // MARK: - 完整URL
@@ -43,6 +44,10 @@ struct APIConfig {
         static var auth: String {
             "\(baseURL)\(Paths.auth)"
         }
+        
+        static var status: String {
+            "\(baseURL)\(Paths.status)"
+        }
     }
     
     // MARK: - 环境配置
@@ -56,7 +61,7 @@ struct APIConfig {
             case .development:
                 return ("localhost", 8080, "http")
             case .production:
-                return ("api.example.com", 443, "https")
+                return ("localhost", 8080, "http")  // 生产环境也使用 8080
             case .local:
                 return ("localhost", 3000, "http")
             }
@@ -64,7 +69,7 @@ struct APIConfig {
     }
     
     // MARK: - 当前环境
-    static let currentEnvironment: Environment = .development
+    static let currentEnvironment: Environment = .production  // 改为生产环境
     
     // MARK: - 环境相关的URL
     static var environmentBaseURL: String {

@@ -76,6 +76,12 @@ export class ClientManager implements WorkspaceAwareService {
       await configFactory.initializeGeminiClient(disableCodeAssist);
     }
 
+    // 如果currentModel为空，从配置中同步当前模型
+    if (!this.currentModel && this.currentContainer?.config) {
+      this.currentModel = this.currentContainer.config.getModel();
+      console.log('ClientManager: 同步当前模型', this.currentModel);
+    }
+
     return this.currentContainer!.geminiClient!;
     }
 
@@ -215,6 +221,12 @@ export class ClientManager implements WorkspaceAwareService {
     console.log('ClientManager: 初始化工作区', { workspacePath });
 
     try {
+      // 如果currentModel为空，尝试从现有配置中获取
+      if (!this.currentModel && this.currentContainer?.config) {
+        this.currentModel = this.currentContainer.config.getModel();
+        console.log('ClientManager: 从现有配置获取模型', this.currentModel);
+      }
+
       // 创建工厂配置参数，使用当前用户选择的模型
       const factoryParams: FactoryConfigParams = {
         targetDir: workspacePath,
