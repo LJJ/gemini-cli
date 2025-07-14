@@ -15,9 +15,18 @@ struct DirectoryItem: Codable, Identifiable {
     let name: String
     let type: String // "directory" 或 "file"
     let path: String
+    var children: [DirectoryItem]? // 子项目，用于展开的文件夹
     
     enum CodingKeys: String, CodingKey {
-        case name, type, path
+        case name, type, path, children
+    }
+    
+    // 初始化方法
+    init(name: String, type: String, path: String, children: [DirectoryItem]? = nil) {
+        self.name = name
+        self.type = type
+        self.path = path
+        self.children = children
     }
 }
 
