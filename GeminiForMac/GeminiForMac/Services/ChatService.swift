@@ -143,7 +143,7 @@ class ChatService: ObservableObject {
                     title: "需要确认工具调用: \(data.displayName)",
                     command: data.command,
                     rootCommand: nil,
-                    fileName: data.args.filePath,
+                    fileName: data.args.filePath ?? "",
                     oldStr: data.args.oldString,
                     newStr: data.args.newString,
                     content: data.args.content,
@@ -151,7 +151,8 @@ class ChatService: ObservableObject {
                     urls: nil,
                     serverName: nil,
                     toolName: data.name,
-                    toolDisplayName: data.displayName
+                    toolDisplayName: data.displayName,
+                    description: data.description
                 )
             )
             addToolConfirmationToQueue(confirmationEvent)

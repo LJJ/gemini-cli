@@ -105,6 +105,26 @@ struct ToolConfirmationView: View {
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
                     }
+                case .runShellCommand:
+                    // write_file tool: 只显示 content
+                    if let content = confirmation.confirmationDetails.content, !content.isEmpty {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text(confirmation.confirmationDetails.description ?? "执行命令")
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                            
+                            ScrollView {
+                                Text(confirmation.confirmationDetails.command ?? "")
+                                    .font(.system(.body, design: .monospaced))
+                                    .padding(12)
+                                    .background(Color.green.opacity(0.1))
+                                    .cornerRadius(6)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                            }
+                            .frame(maxHeight: 300)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    }
                     
                 default:
                     // 其他工具: 不展示具体内容
@@ -225,7 +245,8 @@ struct ToolConfirmationView: View {
                 urls: nil,
                 serverName: nil,
                 toolName: .replace,
-                toolDisplayName: "替换内容"
+                toolDisplayName: "替换内容",
+                description: ""
             )
         ),
         onConfirm: { outcome in

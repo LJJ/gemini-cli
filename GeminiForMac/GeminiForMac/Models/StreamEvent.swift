@@ -183,8 +183,11 @@ struct ToolConfirmationEventData: Codable {
 struct CommandArgs:Codable {
     let oldString:String?
     let newString:String?
-    let filePath:String
+    let filePath:String?
     let content:String?
+    
+    let command:String?
+    let description:String?
 }
 
 // 7. 完成事件数据

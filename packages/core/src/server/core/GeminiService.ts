@@ -13,7 +13,7 @@ import { ChatHandler } from '../chat/ChatHandler.js';
 import { ToolConfirmationRequest } from '../types/api-types.js';
 import { ToolConfirmationOutcome } from '../../tools/tools.js';
 import { ErrorCode, ERROR_DESCRIPTIONS } from '../types/error-codes.js';
-import { configFactory } from '../../config/ConfigFactory.js';
+import { configFactory } from './ConfigFactory.js';
 import { DEFAULT_GEMINI_MODEL, DEFAULT_GEMINI_FLASH_MODEL } from '../../config/models.js';
 
 // 支持的模型列表
