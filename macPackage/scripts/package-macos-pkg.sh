@@ -266,7 +266,18 @@ SERVICE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 NODE_BIN="$SERVICE_DIR/node20-macos-arm64"
 SERVER_JS="$SERVICE_DIR/start-server.js"
 
-export PORT=8080
+# 检查代理是否可用，如果不可用则跳过代理设置
+if curl -s --connect-timeout 2 http://127.0.0.1:7890 > /dev/null 2>&1; then
+    echo "检测到代理服务，启用代理: http://127.0.0.1:7890" >> "$HOME/Library/Application Support/GeminiForMac/logs/service-startup.log"
+    export http_proxy=http://127.0.0.1:7890
+    export https_proxy=http://127.0.0.1:7890
+else
+    echo "代理服务未运行，使用直连模式" >> "$HOME/Library/Application Support/GeminiForMac/logs/service-startup.log"
+    unset http_proxy
+    unset https_proxy
+fi
+
+export PORT=18080
 export NODE_ENV=production
 
 cd "$SERVICE_DIR"
@@ -381,8 +392,8 @@ if [ -f "$PLIST_TARGET" ]; then
         
         # 尝试检查服务端口
         for i in {1..5}; do
-            if curl -s "http://localhost:8080/health" > /dev/null 2>&1; then
-                echo "✅ 服务端口 8080 可访问"
+            if curl -s "http://localhost:18080/health" > /dev/null 2>&1; then
+                echo "✅ 服务端口 18080 可访问"
                 break
             else
                 echo "等待服务启动... ($i/5)"
@@ -510,7 +521,7 @@ Launch Agent: ~/Library/LaunchAgents/com.gemini.cli.server.plist
 1. 双击 PKG 文件进行安装
 2. 启动 GeminiForMac 应用
 3. 手动启动服务: launchctl load ~/Library/LaunchAgents/com.gemini.cli.server.plist
-4. 验证服务: curl http://localhost:8080
+4. 验证服务: curl http://localhost:18080
 EOF
 
 log_success "🎉 简化 PKG 安装包创建完成！"

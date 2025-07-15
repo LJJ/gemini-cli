@@ -1,8 +1,15 @@
 #!/bin/bash
 
-# 设置代理（请根据你的代理端口修改）
-export http_proxy=http://127.0.0.1:7890
-export https_proxy=http://127.0.0.1:7890
+# 检查代理是否可用，如果不可用则跳过代理设置
+if curl -s --connect-timeout 2 http://127.0.0.1:7890 > /dev/null 2>&1; then
+    echo "🔗 检测到代理服务，启用代理: http://127.0.0.1:7890"
+    export http_proxy=http://127.0.0.1:7890
+    export https_proxy=http://127.0.0.1:7890
+else
+    echo "🔗 代理服务未运行，使用直连模式"
+    unset http_proxy
+    unset https_proxy
+fi
 
 # Gemini CLI SwiftUI 应用启动脚本
 echo "🚀 启动 Gemini CLI SwiftUI 应用..."
@@ -40,6 +47,12 @@ cd packages/core
 export GEMINI_WORKSPACE="$HOME"
 echo "🏠 设置工作目录为: $GEMINI_WORKSPACE"
 
+# 设置API服务器端口
+export PORT=${PORT:-18080}
+export GEMINI_PORT=${PORT}
+echo "🔌 API服务器端口: $PORT"
+echo "🔌 macOS应用连接端口: $GEMINI_PORT"
+
 npm run start:server &
 SERVER_PID=$!
 
@@ -48,7 +61,7 @@ echo "⏳ 等待服务器启动..."
 sleep 3
 
 # 检查服务器是否启动成功
-if curl -s http://localhost:8080/status > /dev/null; then
+if curl -s http://localhost:${PORT}/status > /dev/null; then
     echo "✅ 后端服务器启动成功"
 else
     echo "❌ 后端服务器启动失败"
@@ -67,7 +80,7 @@ fi
 
 echo ""
 echo "🎉 启动完成！"
-echo "📱 后端服务器运行在: http://localhost:8080"
+echo "📱 后端服务器运行在: http://localhost:${PORT}"
 echo "🖥️  macOS 应用项目已打开"
 echo ""
 echo "按 Ctrl+C 停止服务器"

@@ -10,8 +10,30 @@ import Foundation
 struct APIConfig {
     // MARK: - 基础配置
     static let baseHost = "localhost"
-    static let basePort = 8080  // 保持与当前实现一致
+    static let basePort = Self.getConfiguredPort()
     static let baseScheme = "http"
+    
+    // MARK: - 端口配置
+    private static func getConfiguredPort() -> Int {
+        // 1. 首先检查环境变量
+        if let portString = ProcessInfo.processInfo.environment["GEMINI_PORT"],
+           let port = Int(portString) {
+            return port
+        }
+        
+        // 2. 检查启动参数
+        let arguments = CommandLine.arguments
+        for i in 0..<arguments.count {
+            if arguments[i] == "--port" && i + 1 < arguments.count {
+                if let port = Int(arguments[i + 1]) {
+                    return port
+                }
+            }
+        }
+        
+        // 3. 默认端口
+        return 18080
+    }
     
     // MARK: - 基础URL
     static var baseURL: String {
@@ -59,11 +81,11 @@ struct APIConfig {
         var config: (host: String, port: Int, scheme: String) {
             switch self {
             case .development:
-                return ("localhost", 8080, "http")
+                return ("localhost", APIConfig.basePort, "http")
             case .production:
-                return ("localhost", 8080, "http")  // 生产环境也使用 8080
+                return ("localhost", APIConfig.basePort, "http")
             case .local:
-                return ("localhost", 3000, "http")
+                return ("localhost", APIConfig.basePort, "http")
             }
         }
     }

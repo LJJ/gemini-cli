@@ -26,7 +26,7 @@
     <key>EnvironmentVariables</key>
     <dict>
         <key>PORT</key>
-        <string>8080</string>
+        <string>18080</string>
         <key>NODE_ENV</key>
         <string>production</string>
     </dict>
