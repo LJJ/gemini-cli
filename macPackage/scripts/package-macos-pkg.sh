@@ -366,10 +366,43 @@ else
     echo "❌ 警告: 找不到服务配置模板"
 fi
 
-# 不自动启动服务，由用户手动控制
+# 自动启动 Launch Agent 服务
+if [ -f "$PLIST_TARGET" ]; then
+    echo "启动 Launch Agent 服务..."
+    # 使用正确的用户身份加载服务
+    sudo -u "$CURRENT_USER" launchctl load "$PLIST_TARGET" 2>/dev/null || true
+    
+    # 等待服务启动
+    sleep 2
+    
+    # 验证服务是否启动成功
+    if sudo -u "$CURRENT_USER" launchctl list | grep -q "com.gemini.cli.server"; then
+        echo "✅ 服务启动成功"
+        
+        # 尝试检查服务端口
+        for i in {1..5}; do
+            if curl -s "http://localhost:8080/health" > /dev/null 2>&1; then
+                echo "✅ 服务端口 8080 可访问"
+                break
+            else
+                echo "等待服务启动... ($i/5)"
+                sleep 2
+            fi
+        done
+    else
+        echo "⚠️  服务启动可能失败，请手动检查"
+    fi
+else
+    echo "⚠️  Launch Agent 配置文件不存在，无法自动启动服务"
+fi
+
 echo "✅ GeminiForMac 安装完成"
 echo "服务器安装位置: $SERVER_DIR"
-echo "请启动 GeminiForMac 应用并在菜单中启用服务"
+echo "Launch Agent 配置: $PLIST_TARGET"
+echo "服务管理命令:"
+echo "  启动: launchctl load ~/Library/LaunchAgents/com.gemini.cli.server.plist"
+echo "  停止: launchctl unload ~/Library/LaunchAgents/com.gemini.cli.server.plist"
+echo "  查看状态: launchctl list | grep com.gemini.cli.server"
 
 exit 0
 EOF
