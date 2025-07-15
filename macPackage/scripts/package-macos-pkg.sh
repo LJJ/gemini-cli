@@ -86,6 +86,35 @@ DIST_DIR="$MAC_PACKAGE_DIR/dist"
 
 log_info "开始创建简化 PKG 安装包..."
 
+# 0. 构建 macOS 应用
+log_info "构建 macOS 应用..."
+cd "$PROJECT_ROOT/GeminiForMac"
+
+# 检查 Xcode 是否可用
+if ! command -v xcodebuild &> /dev/null; then
+    log_error "找不到 xcodebuild，请确保已安装 Xcode Command Line Tools"
+    exit 1
+fi
+
+# 清理并构建应用
+log_info "清理旧的构建文件..."
+xcodebuild clean -project GeminiForMac.xcodeproj -scheme GeminiForMac -configuration Release
+
+# 强制清理构建目录，确保全新构建
+log_info "强制清理构建目录..."
+rm -rf "$PROJECT_ROOT/GeminiForMac/build"
+rm -rf "$PROJECT_ROOT/GeminiForMac/DerivedData"
+
+log_info "构建 Release 版本应用..."
+xcodebuild build -project GeminiForMac.xcodeproj -scheme GeminiForMac -configuration Release
+
+if [ $? -ne 0 ]; then
+    log_error "应用构建失败"
+    exit 1
+fi
+
+log_success "macOS 应用构建完成"
+
 # 清理旧的构建
 rm -rf "$DIST_DIR/pkg_build"
 mkdir -p "$DIST_DIR/pkg_build"
@@ -95,13 +124,66 @@ APP_DIR="$DIST_DIR/pkg_build/Applications"
 mkdir -p "$APP_DIR"
 log_info "服务器将由 postinstall 脚本安装到 ~/.gemini-server/"
 
-# 复制应用
-if [ -d "$PROJECT_ROOT/GeminiForMac/build/DerivedData/Build/Products/Release/GeminiForMac.app" ]; then
-    cp -R "$PROJECT_ROOT/GeminiForMac/build/DerivedData/Build/Products/Release/GeminiForMac.app" "$APP_DIR/"
-elif [ -d "$PROJECT_ROOT/GeminiForMac/build/Release/GeminiForMac.app" ]; then
-    cp -R "$PROJECT_ROOT/GeminiForMac/build/Release/GeminiForMac.app" "$APP_DIR/"
+# 复制应用 - 使用最新构建的应用
+log_info "查找最新构建的应用..."
+
+# 查找最新的构建产物
+log_info "搜索构建产物..."
+
+# 首先尝试在 Xcode DerivedData 中查找
+LATEST_APP=""
+LATEST_TIME=0
+
+# 查找所有可能的构建路径
+while IFS= read -r -d '' found_path; do
+    if [ -d "$found_path" ]; then
+        # 获取应用的修改时间
+        app_time=$(stat -f "%m" "$found_path" 2>/dev/null || echo "0")
+        if [ "$app_time" -gt "$LATEST_TIME" ]; then
+            LATEST_TIME=$app_time
+            LATEST_APP="$found_path"
+        fi
+    fi
+done < <(find "$HOME/Library/Developer/Xcode/DerivedData" -name "GeminiForMac.app" -path "*/Build/Products/Release/*" -type d -print0 2>/dev/null)
+
+# 如果没找到，尝试项目目录下的路径
+if [ -z "$LATEST_APP" ]; then
+    log_info "在 Xcode DerivedData 中未找到应用，尝试项目目录..."
+    PROJECT_PATHS=(
+        "$PROJECT_ROOT/GeminiForMac/build/DerivedData/Build/Products/Release/GeminiForMac.app"
+        "$PROJECT_ROOT/GeminiForMac/build/Release/GeminiForMac.app"
+        "$PROJECT_ROOT/GeminiForMac/DerivedData/Build/Products/Release/GeminiForMac.app"
+    )
+    
+    for path in "${PROJECT_PATHS[@]}"; do
+        if [ -d "$path" ]; then
+            app_time=$(stat -f "%m" "$path" 2>/dev/null || echo "0")
+            if [ "$app_time" -gt "$LATEST_TIME" ]; then
+                LATEST_TIME=$app_time
+                LATEST_APP="$path"
+            fi
+        fi
+    done
+fi
+
+if [ -n "$LATEST_APP" ]; then
+    log_info "复制最新应用: $LATEST_APP"
+    cp -R "$LATEST_APP" "$APP_DIR/"
+    
+    # 验证复制是否成功
+    if [ -d "$APP_DIR/GeminiForMac.app" ]; then
+        log_success "应用复制成功"
+        # 显示应用信息
+        app_size=$(du -sh "$APP_DIR/GeminiForMac.app" | cut -f1)
+        app_time=$(stat -f "%Sm" "$APP_DIR/GeminiForMac.app" 2>/dev/null || echo "未知时间")
+        log_info "应用大小: $app_size, 修改时间: $app_time"
+    else
+        log_error "应用复制失败"
+        exit 1
+    fi
 else
     log_error "找不到构建好的 macOS 应用"
+    log_error "请确保已成功构建应用"
     exit 1
 fi
 
@@ -247,6 +329,10 @@ mkdir -p "$LAUNCH_AGENTS_DIR"
 mkdir -p "$LOGS_DIR"
 mkdir -p "$SERVER_DIR"
 
+# 设置正确的目录所有者和权限
+chown -R "$CURRENT_USER:staff" "$LOGS_DIR" 2>/dev/null || true
+chmod 755 "$LOGS_DIR" 2>/dev/null || true
+
 # 复制服务器文件到用户目录
 SERVER_TEMPLATE="/Applications/GeminiForMac.app/Contents/Resources/server-template"
 if [ -d "$SERVER_TEMPLATE" ]; then
@@ -364,8 +450,17 @@ cat > "$DIST_DIR/build-report.txt" << EOF
 PKG 文件: $PKG_NAME
 PKG 大小: $(du -h "$PKG_PATH" | cut -f1)
 
+=== 构建流程 ===
+✅ 强制清理旧构建文件
+✅ 自动构建 macOS 应用 (xcodebuild)
+✅ 查找并复制最新构建的应用
+✅ 验证应用包完整性
+✅ 打包服务器组件
+✅ 创建安装脚本
+✅ 生成 PKG 安装包
+
 === 已验证组件 ===
-✅ GeminiForMac.app 应用
+✅ GeminiForMac.app 应用 (Release 版本)
 ✅ Node.js 运行时 (node20-macos-arm64)
 ✅ 服务器源码 (start-server.js)
 ✅ 启动脚本 (start-service.sh)
@@ -386,6 +481,7 @@ Launch Agent: ~/Library/LaunchAgents/com.gemini.cli.server.plist
 EOF
 
 log_success "🎉 简化 PKG 安装包创建完成！"
+log_info "构建流程：自动构建应用 → 打包组件 → 生成 PKG"
 log_info "输出文件: $PKG_PATH"
 log_info "符号链接: $DIST_DIR/GeminiForMac-Simple.pkg"
 log_info "验证报告: $DIST_DIR/build-report.txt"

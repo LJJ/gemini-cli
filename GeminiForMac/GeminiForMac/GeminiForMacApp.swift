@@ -10,6 +10,9 @@ import Factory
 
 @main
 struct GeminiForMacApp: App {
+    // 确保 ServiceManager 在应用启动时被初始化
+    @Injected(\.serverManager) var serverManager
+    
     var body: some Scene {
         WindowGroup {
             MainView()
@@ -20,6 +23,14 @@ struct GeminiForMacApp: App {
             // 添加自定义菜单
             CommandGroup(after: .appInfo) {
                 Divider()
+                
+                Button("重启服务器服务") {
+                    Task {
+                        await _ = serverManager.stopService()
+                        await _ = serverManager.startService()
+                    }
+                }
+                .keyboardShortcut("r", modifiers: [.command, .shift])
                 
                 Button("切换认证方式") {
                     // 使用依赖注入获取 AuthService 并清除认证配置
