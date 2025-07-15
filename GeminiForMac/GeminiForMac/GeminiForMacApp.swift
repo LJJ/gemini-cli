@@ -22,16 +22,7 @@ struct GeminiForMacApp: App {
         .commands {
             // 添加自定义菜单
             CommandGroup(after: .appInfo) {
-                Divider()
-                
-                Button("重启服务器服务") {
-                    Task {
-                        await _ = serverManager.stopService()
-                        await _ = serverManager.startService()
-                    }
-                }
-                .keyboardShortcut("r", modifiers: [.command, .shift])
-                
+                Divider()                
                 Button("切换认证方式") {
                     // 使用依赖注入获取 AuthService 并清除认证配置
                     let authService = Container.shared.authService.resolve()

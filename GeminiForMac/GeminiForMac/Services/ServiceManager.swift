@@ -11,44 +11,12 @@ import SwiftUI
 @MainActor
 class ServiceManager: ObservableObject {
     @Published var isServiceRunning = false
-    @Published var isStartingService = false
-    @Published var isStoppingService = false
+    @Published var isRestarting = false
     @Published var errorMessage: String?
     
-    private let plistPath = "\(NSHomeDirectory())/Library/LaunchAgents/com.gemini.cli.server.plist"
-    
     init() {
-        // 初始化时检查服务状态
         Task {
             await checkServiceStatus()
-        }
-        
-        // 监听应用生命周期
-        setupAppLifecycleObservers()
-    }
-    
-    // 设置应用生命周期监听
-    private func setupAppLifecycleObservers() {
-        // 应用启动时启动服务
-        NotificationCenter.default.addObserver(
-            forName: NSApplication.didFinishLaunchingNotification,
-            object: nil,
-            queue: .main
-        ) { [weak self] _ in
-            Task { @MainActor in
-                await self?.startService()
-            }
-        }
-        
-        // 应用退出时停止服务
-        NotificationCenter.default.addObserver(
-            forName: NSApplication.willTerminateNotification,
-            object: nil,
-            queue: .main
-        ) { [weak self] _ in
-            Task { @MainActor in
-                await self?.stopService()
-            }
         }
     }
     
@@ -68,60 +36,29 @@ class ServiceManager: ObservableObject {
         }
     }
     
-    // 启动服务
-    func startService() async -> Bool {
-        guard !isServiceRunning else { return true }
-        
-        isStartingService = true
+    // 重启服务
+    func restartService() async -> Bool {
+        isRestarting = true
         errorMessage = nil
         
-        defer { isStartingService = false }
+        defer { isRestarting = false }
         
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/launchctl")
-        process.arguments = ["bootstrap", "gui/\(getCurrentUserID())", plistPath]
+        process.arguments = ["kickstart", "-k", "gui/\(getCurrentUserID())/com.gemini.cli.server"]
         
         do {
             try process.run()
             process.waitUntilExit()
             
-            // 等待服务启动
-            try await Task.sleep(nanoseconds: 3_000_000_000) // 3秒
+            // 等待服务重启
+            try await Task.sleep(nanoseconds: 2_000_000_000) // 2秒
             
-            // 再次检查服务状态
+            // 检查服务状态
             await checkServiceStatus()
             return isServiceRunning
         } catch {
-            errorMessage = "启动服务失败: \(error.localizedDescription)"
-            return false
-        }
-    }
-    
-    // 停止服务
-    func stopService() async -> Bool {
-        guard isServiceRunning else { return true }
-        
-        isStoppingService = true
-        errorMessage = nil
-        
-        defer { isStoppingService = false }
-        
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/launchctl")
-        process.arguments = ["bootout", "gui/\(getCurrentUserID())", plistPath]
-        
-        do {
-            try process.run()
-            process.waitUntilExit()
-            
-            // 等待服务停止
-            try await Task.sleep(nanoseconds: 1_000_000_000) // 1秒
-            
-            // 再次检查服务状态
-            await checkServiceStatus()
-            return !isServiceRunning
-        } catch {
-            errorMessage = "停止服务失败: \(error.localizedDescription)"
+            errorMessage = "重启服务失败: \(error.localizedDescription)"
             return false
         }
     }

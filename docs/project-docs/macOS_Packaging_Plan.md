@@ -126,28 +126,31 @@ exec "$NODE_BIN" "$SERVER_JS"
 - 停止现有服务: `launchctl unload ~/Library/LaunchAgents/com.gemini.cli.server.plist`
 - 删除旧版本应用: `rm -rf /Applications/GeminiForMac.app`
 
-### postinstall 脚本
+### postinstall 脚本 (改进版本)
 - 创建日志目录 `~/Library/Logs/GeminiForMac/` 并设置正确的用户所有权
-- 复制 Launch Agent 配置到用户目录（设置为不自动启动）
+- 复制 Launch Agent 配置到用户目录并**立即启动服务**
 - 设置正确的文件权限和所有者
-- 服务由应用自动管理（应用启动时启动，应用退出时停止）
-- 遵循 macOS 安装最佳实践，让用户保持控制权
+- 执行 `launchctl load ~/Library/LaunchAgents/com.gemini.cli.server.plist` 启动服务
+- 验证服务启动成功（检查端口 8080）
+- 遵循 macOS 后台服务最佳实践
 
 ---
 
 ## 用户安装流程
 
-### 安装步骤
+### 安装步骤 (改进版本)
 1. 双击 `GeminiForMac-Simple.pkg` 文件
 2. 按照安装向导完成安装
-3. 启动 GeminiForMac 应用
-4. 服务会自动启动，无需手动操作
+3. **安装完成即可使用** - 服务已在后台自动启动
+4. 启动 GeminiForMac 应用即可连接到已运行的服务
+5. 无需手动启动任何服务
 
-### 服务管理策略
-- **应用启动时**：自动启动 gemini 服务器服务
-- **应用运行期间**：服务持续运行，支持后台处理
-- **应用退出时**：自动停止服务，释放系统资源
-- **手动重启**：可通过菜单 "重启服务器服务" 手动重启
+### 服务管理策略 (改进版本)
+- **系统启动时**：Launch Agent 自动启动 gemini 服务器服务
+- **后台持续运行**：服务独立于应用运行，用户登录即可用
+- **应用连接时**：UI 应用连接到已运行的服务
+- **崩溃自动重启**：`KeepAlive=true` 确保服务高可用性
+- **手动管理**：可通过应用菜单或命令行控制服务
 
 ### 验证安装
 ```bash
@@ -204,6 +207,49 @@ lsof -i :8080
 launchctl stop com.gemini.cli.server
 ```
 
+### 服务重启方法
+
+#### 1. 自动重启（已内置）
+- **崩溃自动重启**：`KeepAlive=true` 确保进程崩溃时自动重启
+- **响应时间**：通常在 1-2 秒内完成重启
+- **无需人工干预**：由 macOS `launchd` 自动处理
+
+#### 2. 手动重启命令
+```bash
+# 方法一：重启服务（推荐）
+launchctl kickstart -k gui/$(id -u)/com.gemini.cli.server
+
+# 方法二：停止后自动重启
+launchctl stop com.gemini.cli.server  # KeepAlive 会自动重启
+
+# 方法三：完整重新加载
+launchctl unload ~/Library/LaunchAgents/com.gemini.cli.server.plist
+launchctl load ~/Library/LaunchAgents/com.gemini.cli.server.plist
+```
+
+#### 3. 应用内重启功能
+```swift
+// 在 macOS 应用中添加菜单项
+func restartServer() {
+    let task = Process()
+    task.launchPath = "/bin/launchctl"
+    task.arguments = ["kickstart", "-k", "gui/\(getuid())/com.gemini.cli.server"]
+    task.launch()
+}
+```
+
+#### 4. 验证重启成功
+```bash
+# 检查服务状态
+launchctl list | grep com.gemini.cli.server
+
+# 测试服务连接
+curl -s http://localhost:8080/status
+
+# 查看重启日志
+tail -f ~/Library/Logs/GeminiForMac/gemini-server.log
+```
+
 ### 日志权限问题
 ```bash
 # 检查日志目录权限
@@ -241,3 +287,47 @@ tail -f ~/Library/Logs/GeminiForMac/gemini-server-error.log
 3. 检查应用与服务的通信
 4. 验证日志文件写入正确位置
 5. 测试卸载流程的完整性
+
+---
+
+## 改进实现方案
+
+### 关键改进点
+1. **真正的自动启动**：安装后立即启动服务，无需用户干预
+2. **独立服务生命周期**：服务与应用解耦，后台持续运行
+3. **用户友好体验**：安装即用，应用随时可连接服务
+
+### 修改的安装脚本
+```bash
+# postinstall 脚本关键部分
+#!/bin/bash
+
+# 获取当前用户
+CURRENT_USER=$(stat -f "%Su" /dev/console)
+USER_HOME=$(eval echo ~$CURRENT_USER)
+
+# 创建 Launch Agent 配置
+cp "/Applications/GeminiForMac.app/Contents/Resources/launch-agent/com.gemini.cli.server.plist.template" \
+   "$USER_HOME/Library/LaunchAgents/com.gemini.cli.server.plist"
+
+# 设置权限
+chown $CURRENT_USER:staff "$USER_HOME/Library/LaunchAgents/com.gemini.cli.server.plist"
+
+# 立即启动服务
+sudo -u $CURRENT_USER launchctl load "$USER_HOME/Library/LaunchAgents/com.gemini.cli.server.plist"
+
+# 验证服务启动
+sleep 2
+if curl -s http://localhost:8080/status > /dev/null; then
+    echo "Gemini 服务启动成功"
+else
+    echo "警告：Gemini 服务可能未正常启动"
+fi
+```
+
+### 用户体验优势
+- ✅ **零配置启动**：安装后服务自动运行
+- ✅ **随时可用**：应用可随时启动并连接服务
+- ✅ **系统集成**：遵循 macOS Launch Agent 最佳实践
+- ✅ **高可用性**：服务崩溃自动重启
+- ✅ **资源优化**：应用关闭不影响服务运行
