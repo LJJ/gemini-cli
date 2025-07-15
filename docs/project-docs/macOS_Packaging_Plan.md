@@ -127,10 +127,10 @@ exec "$NODE_BIN" "$SERVER_JS"
 - 删除旧版本应用: `rm -rf /Applications/GeminiForMac.app`
 
 ### postinstall 脚本
-- 创建日志目录 `~/Library/Logs/GeminiForMac/`
-- 复制 Launch Agent 配置到用户目录
-- 设置正确的文件权限
-- 不自动启动服务（由用户在应用中启用）
+- 创建日志目录 `~/Library/Logs/GeminiForMac/` 并设置正确的用户所有权
+- 复制 Launch Agent 配置到用户目录（设置为不自动启动）
+- 设置正确的文件权限和所有者
+- 服务由应用自动管理（应用启动时启动，应用退出时停止）
 - 遵循 macOS 安装最佳实践，让用户保持控制权
 
 ---
@@ -141,7 +141,13 @@ exec "$NODE_BIN" "$SERVER_JS"
 1. 双击 `GeminiForMac-Simple.pkg` 文件
 2. 按照安装向导完成安装
 3. 启动 GeminiForMac 应用
-4. 在应用菜单中启用后台服务
+4. 服务会自动启动，无需手动操作
+
+### 服务管理策略
+- **应用启动时**：自动启动 gemini 服务器服务
+- **应用运行期间**：服务持续运行，支持后台处理
+- **应用退出时**：自动停止服务，释放系统资源
+- **手动重启**：可通过菜单 "重启服务器服务" 手动重启
 
 ### 验证安装
 ```bash
@@ -196,6 +202,20 @@ lsof -i :8080
 
 # 手动停止服务
 launchctl stop com.gemini.cli.server
+```
+
+### 日志权限问题
+```bash
+# 检查日志目录权限
+ls -la ~/Library/Logs/GeminiForMac/
+
+# 如果权限不正确，手动修复
+sudo chown -R $(whoami):staff ~/Library/Logs/GeminiForMac/
+chmod 755 ~/Library/Logs/GeminiForMac/
+
+# 检查服务日志
+tail -f ~/Library/Logs/GeminiForMac/gemini-server.log
+tail -f ~/Library/Logs/GeminiForMac/gemini-server-error.log
 ```
 
 ---
