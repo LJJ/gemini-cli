@@ -48,7 +48,7 @@ PID=$!
 sleep 2
 
 # 检查服务器是否启动
-if curl -s http://localhost:8080 > /dev/null 2>&1; then
+if curl -s http://localhost:18080 > /dev/null 2>&1; then
     echo "  ✅ 服务器启动成功"
     kill $PID 2>/dev/null
 else

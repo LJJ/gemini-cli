@@ -20,7 +20,7 @@ launchctl list | grep gemini || echo "服务未运行"
 
 # 测试服务端口
 echo "测试服务端口："
-curl -s http://localhost:8080/health 2>/dev/null || echo "服务未响应"
+curl -s http://localhost:18080/health 2>/dev/null || echo "服务未响应"
 
 # 显示错误日志
 echo "错误日志："

@@ -53,10 +53,10 @@ if launchctl list | grep -q com.gemini.cli.server; then
     echo "✅ 服务已加载: $STATUS"
     
     # 检查服务是否响应
-    if curl -s http://localhost:8080 > /dev/null 2>&1; then
-        echo "✅ 服务运行正常，端口 8080 可访问"
+    if curl -s http://localhost:18080 > /dev/null 2>&1; then
+        echo "✅ 服务运行正常，端口 18080 可访问"
     else
-        echo "⚠️  服务已加载但端口 8080 无响应，查看错误日志:"
+        echo "⚠️  服务已加载但端口 18080 无响应，查看错误日志:"
         echo "   tail -n 20 ~/Library/Logs/GeminiForMac/gemini-server-error.log"
     fi
 else
@@ -71,4 +71,4 @@ echo "手动启动服务: launchctl start com.gemini.cli.server"
 echo "手动停止服务: launchctl stop com.gemini.cli.server"
 echo "重新加载服务: launchctl unload ~/Library/LaunchAgents/com.gemini.cli.server.plist && launchctl load ~/Library/LaunchAgents/com.gemini.cli.server.plist"
 echo "查看错误日志: tail -f ~/Library/Logs/GeminiForMac/gemini-server-error.log"
-echo "测试服务接口: curl http://localhost:8080"
+echo "测试服务接口: curl http://localhost:18080"

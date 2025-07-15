@@ -27,7 +27,7 @@ export class APIServer {
   private fileService: FileService;
   private commandService: CommandService;
 
-  constructor(port: number = 8080) {
+  constructor(port: number = 18080) {
     console.log('APIServer: 初始化服务器');
     
     this.serverConfig = new ServerConfig(port);
@@ -227,7 +227,7 @@ export class APIServer {
 
 // 如果直接运行此文件，启动服务器
 if (import.meta.url === `file://${process.argv[1]}`) {
-  const port = parseInt(process.env.PORT || '8080', 10);
+  const port = parseInt(process.env.PORT || '18080', 10);
   const server = new APIServer(port);
   
   // 使用async立即执行函数来处理异步启动
