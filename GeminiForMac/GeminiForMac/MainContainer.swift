@@ -23,4 +23,10 @@ extension Container {
     var fileExplorerService:Factory<FileExplorerService> {
         self {@MainActor in FileExplorerService()}.shared
     }
+    
+    @MainActor
+    var serverManager:Factory<ServiceManager> {
+        self {@MainActor in ServiceManager()}.shared
+    }
+    
 }
