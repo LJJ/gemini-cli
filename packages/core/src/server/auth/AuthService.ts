@@ -460,17 +460,20 @@ export class AuthService implements ConfigurableService {
       throw createError(ErrorCode.AUTH_NOT_SET);
     }
 
-    // 使用 Config 对象中的当前模型，而不是硬编码的默认模型
-    const currentModel = this.config?.getModel() || DEFAULT_GEMINI_FLASH_MODEL;
+    // 确保有 Config 对象，如果没有则创建临时配置
+    if (!this.config) {
+      console.log('没有 Config 对象，创建临时配置');
+      this.config = this.createTemporaryConfig();
+    }
     
     console.log('AuthService: 创建 ContentGeneratorConfig', { 
-      currentModel, 
+      currentModel: this.config.getModel(), 
       authType: this.currentAuthType,
       disableCodeAssist 
     });
 
     const config = await createContentGeneratorConfig(
-      currentModel,
+      this.config,
       this.currentAuthType
     );
 
