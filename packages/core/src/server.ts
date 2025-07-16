@@ -11,6 +11,8 @@ import { CommandService } from './server/tools/CommandService.js';
 import { AuthService } from './server/auth/AuthService.js';
 import { configFactory } from './server/core/ConfigFactory.js';
 import { serverBootstrap } from './server/core/ServerBootstrap.js';
+import { ProxyConfigManager } from './server/utils/ProxyConfigManager.js';
+import { ResponseFactory } from './server/utils/responseFactory.js';
 
 /**
  * API服务器 - 重构后使用ConfigFactory管理依赖（优化版）
@@ -54,6 +56,8 @@ export class APIServer {
     // 健康检查
     app.get('/status', (req, res) => {
       const authService = this.getAuthService();
+      const proxyManager = ProxyConfigManager.getInstance();
+      
       res.json({ 
         status: 'ok', 
         timestamp: new Date().toISOString(),
@@ -66,7 +70,8 @@ export class APIServer {
         authService: {
           configured: authService.isConfigured(),
           authenticated: authService.isUserAuthenticated()
-        }
+        },
+        proxy: proxyManager.getProxyInfo()
       });
     });
 
@@ -141,6 +146,34 @@ export class APIServer {
       }
     });
     
+    app.post('/auth/google-auth-url', async (req, res) => {
+      try {
+        const authService = this.getAuthService();
+        await authService.handleGoogleAuthUrl(req, res);
+      } catch (error) {
+        console.error('Error in /auth/google-auth-url:', error);
+        res.status(500).json({
+          success: false,
+          message: '生成授权 URL 失败',
+          error: error instanceof Error ? error.message : 'Unknown error'
+        });
+      }
+    });
+    
+    app.post('/auth/google-auth-code', async (req, res) => {
+      try {
+        const authService = this.getAuthService();
+        await authService.handleGoogleAuthCode(req, res);
+      } catch (error) {
+        console.error('Error in /auth/google-auth-code:', error);
+        res.status(500).json({
+          success: false,
+          message: '处理授权码失败',
+          error: error instanceof Error ? error.message : 'Unknown error'
+        });
+      }
+    });
+    
     // 聊天功能 - 连接到真实的 Gemini 服务
     app.post('/chat', (req, res) => {
       this.geminiService.handleChat(req, res);
@@ -178,6 +211,60 @@ export class APIServer {
     });
     app.post('/model/switch', (req, res) => {
       this.geminiService.handleModelSwitch(req, res);
+    });
+
+    // 代理管理API
+    app.get('/proxy/config', (req, res) => {
+      try {
+        const proxyManager = ProxyConfigManager.getInstance();
+        res.json(ResponseFactory.success(proxyManager.getConfig(), '获取代理配置成功'));
+      } catch (error) {
+        res.status(500).json(ResponseFactory.internalError(
+          error instanceof Error ? error.message : '获取代理配置失败'
+        ));
+      }
+    });
+    
+    app.post('/proxy/config', (req, res) => {
+      try {
+        const { enabled, host, port, type } = req.body;
+        const proxyManager = ProxyConfigManager.getInstance();
+        
+        if (enabled && host && port) {
+          proxyManager.setProxy(host, port, type || 'http');
+          res.json(ResponseFactory.success(
+            proxyManager.getConfig(), 
+            `代理已设置为 ${host}:${port}`
+          ));
+        } else if (enabled === false) {
+          proxyManager.disableProxy();
+          res.json(ResponseFactory.success(
+            proxyManager.getConfig(), 
+            '代理已禁用'
+          ));
+        } else {
+          res.status(400).json(ResponseFactory.error('请提供有效的代理配置', 400));
+        }
+      } catch (error) {
+        res.status(500).json(ResponseFactory.internalError(
+          error instanceof Error ? error.message : '设置代理配置失败'
+        ));
+      }
+    });
+    
+    app.post('/proxy/test', async (req, res) => {
+      try {
+        const proxyManager = ProxyConfigManager.getInstance();
+        const isWorking = await proxyManager.testProxy();
+        res.json(ResponseFactory.success(
+          { working: isWorking }, 
+          isWorking ? '代理连接正常' : '代理连接失败'
+        ));
+      } catch (error) {
+        res.status(500).json(ResponseFactory.internalError(
+          error instanceof Error ? error.message : '测试代理连接失败'
+        ));
+      }
     });
   }
 

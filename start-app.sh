@@ -53,6 +53,10 @@ export GEMINI_PORT=${PORT}
 echo "🔌 API服务器端口: $PORT"
 echo "🔌 macOS应用连接端口: $GEMINI_PORT"
 
+# 启用 code 登录模式进行测试
+export GEMINI_NO_BROWSER=true
+echo "🔐 启用 code 登录模式"
+
 npm run start:server &
 SERVER_PID=$!
 

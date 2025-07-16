@@ -194,6 +194,7 @@ mkdir -p "$SERVER_TEMPLATE_DIR"
 
 # 复制完整的核心包构建产物
 cp -R "$PROJECT_ROOT/packages/core/dist/"* "$SERVER_TEMPLATE_DIR/"
+cp "$PROJECT_ROOT/packages/core/package.json" "$SERVER_TEMPLATE_DIR/"
 
 # 复制 node_modules 依赖（优先使用根目录的 node_modules）
 if [ -d "$PROJECT_ROOT/node_modules" ]; then
@@ -268,17 +269,19 @@ SERVER_JS="$SERVICE_DIR/start-server.js"
 
 # 检查代理是否可用，如果不可用则跳过代理设置
 if curl -s --connect-timeout 2 http://127.0.0.1:7890 > /dev/null 2>&1; then
-    echo "检测到代理服务，启用代理: http://127.0.0.1:7890" >> "$HOME/Library/Application Support/GeminiForMac/logs/service-startup.log"
+    echo "检测到代理服务，启用代理: http://127.0.0.1:7890" >> "$HOME/Library/Logs/GeminiForMac/service-startup.log"
     export http_proxy=http://127.0.0.1:7890
     export https_proxy=http://127.0.0.1:7890
 else
-    echo "代理服务未运行，使用直连模式" >> "$HOME/Library/Application Support/GeminiForMac/logs/service-startup.log"
+    echo "代理服务未运行，使用直连模式" >> "$HOME/Library/Logs/GeminiForMac/service-startup.log"
     unset http_proxy
     unset https_proxy
 fi
 
 export PORT=18080
 export NODE_ENV=production
+# 强制使用 code 登录模式，避免 web 回调在后台服务中的问题
+export GEMINI_NO_BROWSER=true
 
 cd "$SERVICE_DIR"
 exec "$NODE_BIN" "$SERVER_JS"
@@ -315,6 +318,11 @@ cat > "$APP_RESOURCES/launch-agent/com.gemini.cli.server.plist.template" << 'EOF
     
     <key>WorkingDirectory</key>
     <string>$HOME/.gemini-server</string>
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>GEMINI_WORKSPACE</key>
+        <string>$HOME</string>
+    </dict>
 </dict>
 </plist>
 EOF

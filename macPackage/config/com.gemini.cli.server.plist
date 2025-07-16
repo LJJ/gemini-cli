@@ -18,10 +18,10 @@
     <true/>
     
     <key>StandardOutPath</key>
-    <string>$HOME/Library/Application Support/GeminiForMac/logs/gemini-server.log</string>
+    <string>$HOME/Library/Logs/GeminiForMac/gemini-server.log</string>
     
     <key>StandardErrorPath</key>
-    <string>$HOME/Library/Application Support/GeminiForMac/logs/gemini-server-error.log</string>
+    <string>$HOME/Library/Logs/GeminiForMac/gemini-server-error.log</string>
     
     <key>EnvironmentVariables</key>
     <dict>

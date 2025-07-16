@@ -36,10 +36,12 @@ struct FileItemView: View {
                         .font(.caption2)
                         .foregroundColor(.secondary)
                         .frame(width: 12, height: 12)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3)// 增加图标点击区域
+                        .contentShape(Rectangle()) // 确保图标周围也能响应点击
                 }
                 .buttonStyle(.plain)
-                .frame(width: 20, height: 20)
-                .contentShape(Rectangle())
+                .contentShape(Rectangle()) // 确保按钮整体区域都能点击
             } else {
                 // 文件占位符
                 Rectangle()
@@ -107,7 +109,6 @@ struct FileItemView: View {
         if item.type == "directory" {
             return isExpanded ? "folder.fill" : "folder"
         } else {
-            // 根据文件扩展名返回不同图标
             let ext = (item.name as NSString).pathExtension.lowercased()
             switch ext {
             case "swift":
@@ -115,21 +116,33 @@ struct FileItemView: View {
             case "py":
                 return "python"
             case "js", "ts":
-                return "javascript"
+                return "chevron.left.slash.chevron.right"
             case "html", "htm":
-                return "html"
-            case "css":
-                return "css"
+                return "curlybraces"
+            case "css", "scss", "less":
+                return "paintbrush"
             case "json":
-                return "json"
+                return "curlybraces.square"
             case "md":
-                return "markdown"
-            case "txt":
+                return "doc.plaintext"
+            case "txt", "log":
                 return "doc.text"
             case "pdf":
                 return "doc.richtext"
-            case "jpg", "jpeg", "png", "gif":
+            case "jpg", "jpeg", "png", "gif", "bmp", "tiff", "heic":
                 return "photo"
+            case "mp4", "mov", "avi", "mkv":
+                return "film"
+            case "mp3", "wav", "aac", "flac":
+                return "waveform"
+            case "zip", "rar", "7z", "tar", "gz":
+                return "archivebox"
+            case "csv", "xls", "xlsx":
+                return "tablecells"
+            case "doc", "docx":
+                return "doc"
+            case "ppt", "pptx":
+                return "chart.bar.doc.horizontal"
             default:
                 return "doc"
             }
@@ -151,12 +164,28 @@ struct FileItemView: View {
                 return .yellow
             case "html", "htm":
                 return .red
-            case "css":
+            case "css", "scss", "less":
                 return .blue
             case "json":
                 return .green
             case "md":
                 return .purple
+            case "pdf":
+                return .red
+            case "jpg", "jpeg", "png", "gif", "bmp", "tiff", "heic":
+                return .pink
+            case "mp4", "mov", "avi", "mkv":
+                return .purple
+            case "mp3", "wav", "aac", "flac":
+                return .mint
+            case "zip", "rar", "7z", "tar", "gz":
+                return .gray
+            case "csv", "xls", "xlsx":
+                return .green
+            case "doc", "docx":
+                return .indigo
+            case "ppt", "pptx":
+                return .orange
             default:
                 return .secondary
             }

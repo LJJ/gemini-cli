@@ -135,7 +135,7 @@ class AuthService: ObservableObject {
                 switch authType {
                 case .loginWithGoogle:
                     // Google 登录需要服务器端处理
-                    await handleGoogleLogin()
+                    await handleGoogleCodeLogin()
                     
                 case .useGemini, .useVertexAI:
                     // API Key 认证直接完成
@@ -153,23 +153,89 @@ class AuthService: ObservableObject {
         }
     }
     
-    private func handleGoogleLogin() async {
-        print("开始处理 Google 登录...")
+    private func handleGoogleCodeLogin() async {
+        print("开始处理 Google Code 登录...")
         
-        // 与服务器端通信，启动 Google 登录流程
+        // 第一步：获取授权 URL
+        authStatus = .authenticating
+        
         let apiService = APIService()
         
-        if let response = await apiService.startGoogleLogin() {
-            print("收到 Google 登录响应: message=\(response.message)")
+        guard let urlResponse = await apiService.getGoogleAuthUrl() else {
+            print("获取 Google 授权 URL 失败")
+            authStatus = .error("获取授权 URL 失败，请检查网络连接")
+            errorMessage = "获取授权 URL 失败，请检查网络连接"
+            return
+        }
+        
+        print("收到 Google 授权 URL: \(urlResponse.authUrl)")
+        
+        // 第二步：在浏览器中打开授权 URL
+        guard let url = URL(string: urlResponse.authUrl) else {
+            authStatus = .error("无效的授权 URL")
+            errorMessage = "无效的授权 URL"
+            return
+        }
+        
+        // 打开浏览器
+        await MainActor.run {
+            NSWorkspace.shared.open(url)
+        }
+        
+        // 第三步：提示用户输入授权码
+        await MainActor.run {
+            self.showCodeInputDialog()
+        }
+    }
+    
+    private func showCodeInputDialog() {
+        // 显示授权码输入对话框
+        let alert = NSAlert()
+        alert.messageText = "Google 授权"
+        alert.informativeText = "请在浏览器中完成授权，然后将获得的授权码粘贴到下方："
+        alert.addButton(withTitle: "确定")
+        alert.addButton(withTitle: "取消")
+        
+        let inputTextField = NSTextField(frame: NSRect(x: 0, y: 0, width: 300, height: 24))
+        inputTextField.placeholderString = "请输入授权码"
+        alert.accessoryView = inputTextField
+        
+        let response = alert.runModal()
+        
+        if response == .alertFirstButtonReturn {
+            let code = inputTextField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !code.isEmpty {
+                Task {
+                    await self.submitGoogleAuthCode(code: code)
+                }
+            } else {
+                authStatus = .error("授权码不能为空")
+                errorMessage = "授权码不能为空"
+            }
+        } else {
+            // 用户取消了授权
+            authStatus = .notAuthenticated
+            errorMessage = nil
+        }
+    }
+    
+    private func submitGoogleAuthCode(code: String) async {
+        print("提交 Google 授权码...")
+        
+        let apiService = APIService()
+        
+        if let response = await apiService.submitGoogleAuthCode(code: code) {
+            print("收到 Google 授权码响应: message=\(response.message)")
             
-            // Google 登录成功（服务器返回了响应就表示成功）
+            // Google 登录成功
             print("Google 登录成功，更新认证状态")
             authStatus = .authenticated
             showAuthDialog = false
+            errorMessage = nil
         } else {
-            print("Google 登录请求失败，没有收到响应")
-            authStatus = .error("Google 登录失败，请检查网络连接")
-            errorMessage = "Google 登录失败，请检查网络连接"
+            print("Google 授权码提交失败")
+            authStatus = .error("授权码验证失败，请检查授权码是否正确")
+            errorMessage = "授权码验证失败，请检查授权码是否正确"
         }
     }
     

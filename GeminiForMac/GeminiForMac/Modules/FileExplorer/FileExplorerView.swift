@@ -58,6 +58,9 @@ struct FileExplorerToolbar: View {
             }) {
                 Image(systemName: "chevron.left")
                     .font(.caption)
+                    .padding(.horizontal, 4)
+                    .padding(.vertical, 2)
+                    .contentShape(.rect)
             }
             .disabled(!viewModel.canGoBack)
             .buttonStyle(.plain)
@@ -68,6 +71,9 @@ struct FileExplorerToolbar: View {
             }) {
                 Image(systemName: "chevron.right")
                     .font(.caption)
+                    .padding(.horizontal, 4)
+                    .padding(.vertical, 2)
+                    .contentShape(.rect)
             }
             .disabled(!viewModel.canGoForward)
             .buttonStyle(.plain)
@@ -78,6 +84,9 @@ struct FileExplorerToolbar: View {
             }) {
                 Image(systemName: "arrow.up")
                     .font(.caption)
+                    .padding(.horizontal, 4)
+                    .padding(.vertical, 2)
+                    .contentShape(.rect)
             }
             .buttonStyle(.plain)
             
@@ -90,6 +99,9 @@ struct FileExplorerToolbar: View {
             }) {
                 Image(systemName: "arrow.clockwise")
                     .font(.caption)
+                    .padding(.horizontal, 4)
+                    .padding(.vertical, 2)
+                    .contentShape(.rect)
             }
             .buttonStyle(.plain)
             

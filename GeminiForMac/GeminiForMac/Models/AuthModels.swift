@@ -86,3 +86,8 @@ struct AuthStatusData: Codable {
     let hasApiKey: Bool
     let hasGoogleCloudConfig: Bool
 }
+
+// Google 授权 URL 数据
+struct GoogleAuthUrlData: Codable {
+    let authUrl: String
+}
