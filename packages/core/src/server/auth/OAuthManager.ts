@@ -7,9 +7,21 @@
 import { promises as fs } from 'fs';
 import path from 'path';
 import os from 'os';
+import crypto from 'crypto';
 import { getOauthClient, clearCachedCredentialFile } from '../../code_assist/oauth2.js';
 import { AuthType } from '../../core/contentGenerator.js';
 import { Config } from '../../config/config.js';
+import { OAuth2Client, CodeChallengeMethod } from 'google-auth-library';
+import { ProxyConfigManager } from '../utils/ProxyConfigManager.js';
+
+// OAuth 常量
+const OAUTH_CLIENT_ID = '681255809395-oo8ft2oprdrnp9e3aqf6av3hmdib135j.apps.googleusercontent.com';
+const OAUTH_CLIENT_SECRET = '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';
+const OAUTH_SCOPE = [
+  'https://www.googleapis.com/auth/cloud-platform',
+  'https://www.googleapis.com/auth/userinfo.email',
+  'https://www.googleapis.com/auth/userinfo.profile',
+];
 
 /**
  * OAuth管理器 - 负责OAuth凭据的验证和管理
@@ -22,6 +34,7 @@ import { Config } from '../../config/config.js';
 export class OAuthManager {
   private readonly oauthCredsPath: string;
   private config: Config | null = null;
+  private codeVerifier: string | null = null;
 
   constructor(config?: Config) {
     this.oauthCredsPath = path.join(os.homedir(), '.gemini', 'oauth_creds.json');
@@ -245,5 +258,137 @@ export class OAuthManager {
            error.message.includes('timeout') ||
            error.message.includes('ENOTFOUND') ||
            error.message.includes('ECONNREFUSED');
+  }
+
+  /**
+   * 缓存凭据到文件
+   */
+  private async cacheCredentials(credentials: any): Promise<void> {
+    try {
+      console.log('开始缓存OAuth凭据...');
+      console.log('凭据路径:', this.oauthCredsPath);
+      
+      // 确保目录存在
+      const geminiDir = path.dirname(this.oauthCredsPath);
+      console.log('创建目录:', geminiDir);
+      await fs.mkdir(geminiDir, { recursive: true });
+      
+      // 写入凭据文件
+      console.log('序列化凭据...');
+      const credString = JSON.stringify(credentials, null, 2);
+      console.log('凭据字符串长度:', credString.length);
+      
+      console.log('写入凭据文件...');
+      await fs.writeFile(this.oauthCredsPath, credString);
+      
+      console.log('OAuth凭据已缓存到:', this.oauthCredsPath);
+    } catch (error) {
+      console.error('缓存OAuth凭据失败:', error);
+      console.error('错误详情:', error instanceof Error ? error.message : String(error));
+      throw error;
+    }
+  }
+
+  /**
+   * 生成授权 URL（用于客户端-服务器 code 登录流程）
+   */
+  public async generateAuthUrl(): Promise<string> {
+    console.log('生成 OAuth 授权 URL...');
+
+    if (!this.config) {
+      throw new Error('Config 对象未设置，无法生成授权 URL');
+    }
+
+    // 确保代理设置是最新的
+    console.log('检查并更新代理设置...');
+    ProxyConfigManager.getInstance();
+
+    const client = new OAuth2Client({
+      clientId: OAUTH_CLIENT_ID,
+      clientSecret: OAUTH_CLIENT_SECRET,
+    });
+
+    const redirectUri = 'https://sdk.cloud.google.com/authcode_cloudcode.html';
+    const codeVerifier = await client.generateCodeVerifierAsync();
+    const state = crypto.randomBytes(32).toString('hex');
+
+    // 保存 codeVerifier 供后续使用
+    this.codeVerifier = codeVerifier.codeVerifier;
+
+    const authUrl = client.generateAuthUrl({
+      redirect_uri: redirectUri,
+      access_type: 'offline',
+      scope: OAUTH_SCOPE,
+      code_challenge_method: CodeChallengeMethod.S256,
+      code_challenge: codeVerifier.codeChallenge,
+      state,
+    });
+
+    console.log('OAuth 授权 URL 生成成功');
+    return authUrl;
+  }
+
+  /**
+   * 使用授权码获取访问令牌（用于客户端-服务器 code 登录流程）
+   */
+  public async exchangeCodeForTokens(code: string): Promise<void> {
+    console.log('使用授权码获取访问令牌...');
+
+    if (!this.config) {
+      throw new Error('Config 对象未设置，无法处理授权码');
+    }
+
+    if (!this.codeVerifier) {
+      throw new Error('未找到 code verifier，请先调用 generateAuthUrl 方法');
+    }
+
+    const client = new OAuth2Client({
+      clientId: OAUTH_CLIENT_ID,
+      clientSecret: OAUTH_CLIENT_SECRET,
+    });
+
+    const redirectUri = 'https://sdk.cloud.google.com/authcode_cloudcode.html';
+
+    try {
+      // 确保代理设置是最新的
+      console.log('检查并更新代理设置...');
+      const proxyManager = ProxyConfigManager.getInstance();
+      
+      // 输出当前代理状态用于调试
+      const proxyInfo = proxyManager.getProxyInfo();
+      console.log('当前代理状态:', proxyInfo.url);
+      console.log('代理配置:', proxyInfo.config);
+      
+      console.log('开始调用 client.getToken...');
+      const { tokens } = await client.getToken({
+        code,
+        codeVerifier: this.codeVerifier,
+        redirect_uri: redirectUri,
+      });
+
+      console.log('client.getToken 调用成功，获取到令牌');
+      console.log('令牌类型:', Object.keys(tokens));
+
+      console.log('设置客户端凭据...');
+      client.setCredentials(tokens);
+      
+      // 保存令牌到文件（重要：这步缺失了！）
+      console.log('开始缓存令牌到文件...');
+      await this.cacheCredentials(tokens);
+      
+      // 清理 codeVerifier
+      console.log('清理 codeVerifier...');
+      this.codeVerifier = null;
+      
+      console.log('OAuth 令牌获取成功并已缓存');
+    } catch (error) {
+      // 清理 codeVerifier
+      this.codeVerifier = null;
+      
+      console.error('OAuth 令牌获取失败:', error);
+      console.error('错误详情:', error instanceof Error ? error.message : String(error));
+      console.error('错误堆栈:', error instanceof Error ? error.stack : 'No stack available');
+      throw error;
+    }
   }
 } 

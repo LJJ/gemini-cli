@@ -302,6 +302,106 @@ export class AuthService implements ConfigurableService {
     }
   }
 
+  public async handleGoogleAuthUrl(req: express.Request, res: express.Response) {
+    try {
+      console.log('生成 Google 授权 URL');
+
+      if (this.currentAuthType !== AuthType.LOGIN_WITH_GOOGLE) {
+        return res.status(400).json(ResponseFactory.validationError('authType', '当前认证类型不是 Google 登录'));
+      }
+
+      // 检查是否有Config对象，如果没有则创建临时Config
+      if (!this.config) {
+        console.log('没有Config对象，创建临时Config进行Google登录');
+        const tempConfig = this.createTemporaryConfig();
+        this.oauthManager.setConfig(tempConfig);
+      }
+
+      try {
+        const authUrl = await this.oauthManager.generateAuthUrl();
+        
+        res.json(ResponseFactory.success({
+          authUrl: authUrl
+        }, '授权 URL 生成成功'));
+      } catch (oauthError) {
+        console.error('生成授权 URL 错误:', oauthError);
+        res.status(500).json(ResponseFactory.errorWithCode(
+          ErrorCode.AUTH_CONFIG_FAILED, 
+          '生成授权 URL 失败'
+        ));
+      }
+
+    } catch (error) {
+      console.error('Error in handleGoogleAuthUrl:', error);
+      res.status(500).json(ResponseFactory.internalError(
+        error instanceof Error ? error.message : '生成授权 URL 失败'
+      ));
+    }
+  }
+
+  public async handleGoogleAuthCode(req: express.Request, res: express.Response) {
+    try {
+      console.log('处理 Google 授权码');
+      console.log('请求体:', req.body);
+
+      if (this.currentAuthType !== AuthType.LOGIN_WITH_GOOGLE) {
+        console.log('当前认证类型不是 Google 登录:', this.currentAuthType);
+        return res.status(400).json(ResponseFactory.validationError('authType', '当前认证类型不是 Google 登录'));
+      }
+
+      const { code } = req.body;
+      console.log('收到授权码:', code ? '有效' : '无效');
+      
+      if (!code) {
+        console.log('授权码为空');
+        return res.status(400).json(ResponseFactory.validationError('code', '授权码不能为空'));
+      }
+
+      // 检查是否有Config对象，如果没有则创建临时Config
+      if (!this.config) {
+        console.log('没有Config对象，创建临时Config进行Google登录');
+        const tempConfig = this.createTemporaryConfig();
+        this.oauthManager.setConfig(tempConfig);
+      }
+
+      try {
+        console.log('开始交换授权码...');
+        await this.oauthManager.exchangeCodeForTokens(code);
+        console.log('授权码交换成功');
+        
+        this.isAuthenticated = true;
+        console.log('设置认证状态为已认证');
+        
+        const response = ResponseFactory.authConfig('Google 登录成功');
+        console.log('返回响应:', response);
+        
+        res.json(response);
+      } catch (oauthError) {
+        console.error('Google OAuth 错误:', oauthError);
+        console.error('错误类型:', typeof oauthError);
+        console.error('错误消息:', oauthError instanceof Error ? oauthError.message : 'Unknown error');
+        
+        if (oauthError instanceof Error && this.oauthManager.isNetworkError(oauthError)) {
+          res.status(500).json(ResponseFactory.errorWithCode(
+            ErrorCode.NETWORK_ERROR, 
+            '网络连接超时，请检查网络连接后重试。'
+          ));
+        } else {
+          res.status(500).json(ResponseFactory.errorWithCode(
+            ErrorCode.AUTH_CONFIG_FAILED, 
+            'Google 登录失败，请检查授权码是否正确'
+          ));
+        }
+      }
+
+    } catch (error) {
+      console.error('Error in handleGoogleAuthCode:', error);
+      res.status(500).json(ResponseFactory.internalError(
+        error instanceof Error ? error.message : '处理授权码失败'
+      ));
+    }
+  }
+
   public async handleAuthStatus(req: express.Request, res: express.Response) {
     try {
       // 如果当前没有认证状态，触发初始化（确保状态最新）

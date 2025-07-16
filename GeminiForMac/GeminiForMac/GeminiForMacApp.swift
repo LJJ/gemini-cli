@@ -22,7 +22,15 @@ struct GeminiForMacApp: App {
         .commands {
             // 添加自定义菜单
             CommandGroup(after: .appInfo) {
-                Divider()                
+                Divider()
+                
+                Button("代理设置...") {
+                    ProxySettingsManager.shared.openProxySettings()
+                }
+                .keyboardShortcut("p", modifiers: [.command, .shift])
+                
+                Divider()
+                
                 Button("切换认证方式") {
                     // 使用依赖注入获取 AuthService 并清除认证配置
                     let authService = Container.shared.authService.resolve()

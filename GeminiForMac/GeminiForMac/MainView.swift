@@ -12,6 +12,7 @@ struct MainView: View {
     @ObservedObject private var chatService = Container.shared.chatService.resolve()
     @ObservedObject private var fileExplorerService = Container.shared.fileExplorerService.resolve()
     @StateObject private var authService = Container.shared.authService.resolve()
+    @StateObject private var proxySettingsManager = ProxySettingsManager.shared
     
     var body: some View {
         HSplitView {
@@ -106,6 +107,10 @@ struct MainView: View {
                 .presentationDetents([.medium, .large])
                 .presentationDragIndicator(.visible)
             }
+        }
+        // 代理设置对话框
+        .sheet(isPresented: $proxySettingsManager.showProxySettings) {
+            ProxySettingsView()
         }
     }
 }
