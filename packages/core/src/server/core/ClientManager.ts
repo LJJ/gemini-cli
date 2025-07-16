@@ -73,7 +73,12 @@ export class ClientManager implements WorkspaceAwareService {
     // 确保客户端已初始化
     if (!this.currentContainer?.geminiClient) {
       console.log('ClientManager: 初始化GeminiClient');
-      await configFactory.initializeGeminiClient(disableCodeAssist);
+      try {
+        await configFactory.initializeGeminiClient(disableCodeAssist);
+      } catch (error) {
+        // 重新抛出错误，让上层处理
+        throw error;
+      }
     }
 
     // 如果currentModel为空，从配置中同步当前模型

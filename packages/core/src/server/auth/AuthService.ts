@@ -423,7 +423,7 @@ export class AuthService implements ConfigurableService {
 
   public async handleLogout(req: express.Request, res: express.Response) {
     try {
-      console.log('用户登出，清除认证配置');
+      console.log('用户登出，清除所有认证凭据');
       
       // 清除内存中的认证信息
       this.clearAuthState();
@@ -431,7 +431,10 @@ export class AuthService implements ConfigurableService {
       // 清除持久化的配置
       await this.configManager.clearConfig();
       
-      res.json(ResponseFactory.authConfig('登出成功，认证配置已清除'));
+      // 清除 OAuth 凭据（类似 clear-auth.sh 脚本）
+      await this.clearAllAuthCredentials();
+      
+      res.json(ResponseFactory.authConfig('登出成功，所有认证凭据已清除'));
     } catch (error) {
       console.error('Error in handleLogout:', error);
       res.status(500).json(ResponseFactory.internalError(error instanceof Error ? error.message : '登出失败'));
@@ -447,6 +450,9 @@ export class AuthService implements ConfigurableService {
       
       // 清除持久化的配置
       await this.configManager.clearConfig();
+      
+      // 清除 OAuth 凭据
+      await this.clearAllAuthCredentials();
       
       res.json(ResponseFactory.authConfig('认证配置已清除，可以重新设置认证方式'));
     } catch (error) {
@@ -518,6 +524,76 @@ export class AuthService implements ConfigurableService {
     this.currentGoogleCloudProject = null;
     this.currentGoogleCloudLocation = null;
     this.isAuthenticated = false;
+  }
+
+  /**
+   * 清除所有认证凭据文件（类似 clear-auth.sh 脚本）
+   */
+  private async clearAllAuthCredentials(): Promise<void> {
+    try {
+      const fs = await import('fs');
+      const path = await import('path');
+      const os = await import('os');
+      
+      const geminiDir = path.join(os.homedir(), '.gemini');
+      console.log(`清除认证凭据目录: ${geminiDir}`);
+      
+      // 检查目录是否存在
+      if (!fs.existsSync(geminiDir)) {
+        console.log('✅ Gemini 配置目录不存在，无需清除');
+        return;
+      }
+      
+      // 需要清除的文件列表（与 clear-auth.sh 保持一致）
+      const filesToClear = [
+        'oauth_creds.json',
+        'auth_config.json',
+        'google_accounts.json'
+      ];
+      
+      // 清除每个文件
+      for (const file of filesToClear) {
+        const filePath = path.join(geminiDir, file);
+        try {
+          if (fs.existsSync(filePath)) {
+            await fs.promises.unlink(filePath);
+            console.log(`🗑️  已删除文件: ${file}`);
+          } else {
+            console.log(`ℹ️  文件不存在: ${file}`);
+          }
+        } catch (error) {
+          console.warn(`⚠️  删除文件失败 ${file}:`, error);
+        }
+      }
+      
+      // 检查是否还有其他 JSON 文件
+      try {
+        const files = await fs.promises.readdir(geminiDir);
+        const jsonFiles = files.filter(file => file.endsWith('.json'));
+        
+        if (jsonFiles.length > 0) {
+          console.log(`⚠️  发现其他 JSON 文件: ${jsonFiles.join(', ')}`);
+        } else {
+          console.log('✅ 所有认证相关文件已清除');
+        }
+        
+        // 检查目录是否为空，如果为空则删除
+        const remainingFiles = await fs.promises.readdir(geminiDir);
+        if (remainingFiles.length === 0) {
+          await fs.promises.rmdir(geminiDir);
+          console.log('🗑️  已删除空的 .gemini 目录');
+        } else {
+          console.log('📁 .gemini 目录中还有其他文件，保留目录');
+        }
+      } catch (error) {
+        console.warn('检查剩余文件时出错:', error);
+      }
+      
+      console.log('🎉 认证凭据清除完成！');
+    } catch (error) {
+      console.error('清除认证凭据时出错:', error);
+      throw error;
+    }
   }
 
   /**

@@ -13,6 +13,7 @@ import { configFactory } from './server/core/ConfigFactory.js';
 import { serverBootstrap } from './server/core/ServerBootstrap.js';
 import { ProxyConfigManager } from './server/utils/ProxyConfigManager.js';
 import { ResponseFactory } from './server/utils/responseFactory.js';
+import { ProjectService } from './server/project/ProjectService.js';
 
 /**
  * API服务器 - 重构后使用ConfigFactory管理依赖（优化版）
@@ -265,6 +266,15 @@ export class APIServer {
           error instanceof Error ? error.message : '测试代理连接失败'
         ));
       }
+    });
+
+    // 项目配置管理API
+    app.get('/project/config', (req, res) => {
+      ProjectService.handleGetConfig(req, res);
+    });
+    
+    app.post('/project/config', (req, res) => {
+      ProjectService.handleSetConfig(req, res);
     });
   }
 

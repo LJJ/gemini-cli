@@ -18,6 +18,8 @@ class ChatService: ObservableObject {
     @Published var pendingToolConfirmation: ToolConfirmationEvent?
     @Published var showToolConfirmation = false
     @Published var statusMessage: String? // 新增：用于显示动态状态消息
+    @Published var showProjectConfiguration = false // 新增：用于显示项目配置弹窗
+    @Published var projectConfigurationMessage: String = "" // 新增：项目配置错误消息
     
     // Workspace信息
     @Published var currentWorkspace: String = ""
@@ -320,14 +322,17 @@ class ChatService: ObservableObject {
         // 记录错误日志
         print("收到错误事件: \(errorData.code) - \(errorData.message)")
         
-        // 根据错误代码设置用户友好的错误消息
-        let userMessage = errorData.userFriendlyMessage
+        // 优先显示服务器传递的详细错误消息，如果没有则使用本地化的用户友好消息
+        let userMessage = errorData.message.isEmpty ? errorData.userFriendlyMessage : errorData.message
         self.errorMessage = userMessage
         
         // 根据错误类型执行相应的处理逻辑
         if errorData.requiresReauthentication {
             // 触发重新认证流程
             handleReauthenticationError()
+        } else if errorData.requiresProjectConfiguration {
+            // 触发项目配置弹窗
+            handleProjectConfigurationError(errorData)
         } else if errorData.requiresNetworkCheck {
             // 提示用户检查网络
             handleNetworkError()
@@ -354,6 +359,24 @@ class ChatService: ObservableObject {
             type: .text // 修改为 .text
         )
         messages.append(authMessage)
+    }
+    
+    /// 处理需要项目配置的错误
+    private func handleProjectConfigurationError(_ errorData: ErrorEventData) {
+        print("需要配置Google Cloud Project")
+        
+        // 设置项目配置错误消息
+        projectConfigurationMessage = errorData.message
+        
+        // 显示项目配置弹窗
+        showProjectConfiguration = true
+        
+        // 添加一个系统消息提示用户
+        let configMessage = ChatMessage(
+            content: "⚙️ 需要配置 Google Cloud Project，请在弹窗中完成设置",
+            type: .text
+        )
+        messages.append(configMessage)
     }
     
     /// 处理网络相关错误

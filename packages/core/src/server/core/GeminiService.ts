@@ -94,7 +94,20 @@ export class GeminiService {
       });
 
       // 使用ClientManager获取或创建客户端（会自动处理ConfigFactory）
-      await this.clientManager.getOrCreateClient(effectiveWorkspacePath);
+      try {
+        await this.clientManager.getOrCreateClient(effectiveWorkspacePath);
+      } catch (clientError) {
+        // 设置流式响应头
+        this.streamingEventService.setupStreamingResponse(res);
+        
+        // 检查是否是 GOOGLE_CLOUD_PROJECT 错误
+        const errorCode = clientError instanceof Error && (clientError as any).code ? (clientError as any).code : ErrorCode.INTERNAL_ERROR;
+        const errorMessage = clientError instanceof Error ? clientError.message : 'Unknown error';
+        
+        this.streamingEventService.sendErrorEvent(res, errorMessage, errorCode);
+        this.streamingEventService.sendCompleteEvent(res, false, '客户端初始化失败');
+        return;
+      }
 
       // 委托给聊天处理器
       await this.chatHandler.handleStreamingChat(message, filePaths, res);
