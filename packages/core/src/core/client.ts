@@ -135,9 +135,27 @@ export class GeminiClient {
 
   getChat(): GeminiChat {
     if (!this.chat) {
-      throw new Error('Chat not initialized');
+      throw new Error('Chat not initialized. Use getChatAsync() or call initialize() first.');
     }
     return this.chat;
+  }
+
+  async getChatAsync(): Promise<GeminiChat> {
+    if (!this.chat) {
+      try {
+        await this.initialize(this.config.getContentGeneratorConfig());
+      } catch (error) {
+        throw new Error(`Failed to initialize chat: ${error}`);
+      }
+    }
+    if (!this.chat) {
+      throw new Error('Chat initialization failed');
+    }
+    return this.chat;
+  }
+
+  getChatSafe(): GeminiChat | null {
+    return this.chat || null;
   }
 
   isInitialized(): boolean {
