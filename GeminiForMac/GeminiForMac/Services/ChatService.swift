@@ -19,6 +19,10 @@ class ChatService: ObservableObject {
     @Published var showToolConfirmation = false
     @Published var statusMessage: String? // 新增：用于显示动态状态消息
     
+    // Workspace信息
+    @Published var currentWorkspace: String = ""
+    @Published var currentPath: String = ""
+    
     // 工具确认队列
     private var toolConfirmationQueue: [ToolConfirmationEvent] = []
     private var isProcessingConfirmation = false
@@ -156,6 +160,12 @@ class ChatService: ObservableObject {
                 )
             )
             addToolConfirmationToQueue(confirmationEvent)
+            
+        case .workspace(let data):
+            // 处理工作区事件 - 更新workspace信息
+            print("收到工作区事件: workspace=\(data.workspacePath), currentPath=\(data.currentPath)")
+            currentWorkspace = data.workspacePath
+            currentPath = data.currentPath
             
         case .error(let data):
             // 处理错误 - 使用新的错误代码系统

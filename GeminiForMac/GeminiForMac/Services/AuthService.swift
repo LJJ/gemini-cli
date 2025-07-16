@@ -13,6 +13,7 @@ class AuthService: ObservableObject {
     @Published var authStatus: AuthStatus = .notAuthenticated
     @Published var currentAuthType: AuthType?
     @Published var showAuthDialog = false
+    @Published var showAuthCodeInput = false
     @Published var errorMessage: String?
     
     private let userDefaults = UserDefaults.standard
@@ -69,6 +70,7 @@ class AuthService: ObservableObject {
     
     // MARK: - 认证验证
     
+    // 注意：验证逻辑已移至 AuthDialogVM 中，此方法保留用于向后兼容
     func validateAuthMethod(_ authType: AuthType, apiKey: String? = nil, googleCloudProject: String? = nil, googleCloudLocation: String? = nil) -> String? {
         switch authType {
         case .loginWithGoogle:
@@ -97,13 +99,7 @@ class AuthService: ObservableObject {
     // MARK: - 认证处理
     
     func authenticate(authType: AuthType, apiKey: String? = nil, googleCloudProject: String? = nil, googleCloudLocation: String? = nil) async {
-        // 验证认证方法
-        if let error = validateAuthMethod(authType, apiKey: apiKey, googleCloudProject: googleCloudProject, googleCloudLocation: googleCloudLocation) {
-            authStatus = .error(error)
-            errorMessage = error
-            return
-        }
-        
+        // 注意：验证逻辑已移至 AuthDialogVM 中，这里直接开始认证流程
         authStatus = .authenticating
         errorMessage = nil
         
@@ -182,42 +178,13 @@ class AuthService: ObservableObject {
             NSWorkspace.shared.open(url)
         }
         
-        // 第三步：提示用户输入授权码
+        // 第三步：显示授权码输入界面
         await MainActor.run {
-            self.showCodeInputDialog()
+            self.showAuthCodeInput = true
         }
     }
     
-    private func showCodeInputDialog() {
-        // 显示授权码输入对话框
-        let alert = NSAlert()
-        alert.messageText = "Google 授权"
-        alert.informativeText = "请在浏览器中完成授权，然后将获得的授权码粘贴到下方："
-        alert.addButton(withTitle: "确定")
-        alert.addButton(withTitle: "取消")
-        
-        let inputTextField = NSTextField(frame: NSRect(x: 0, y: 0, width: 300, height: 24))
-        inputTextField.placeholderString = "请输入授权码"
-        alert.accessoryView = inputTextField
-        
-        let response = alert.runModal()
-        
-        if response == .alertFirstButtonReturn {
-            let code = inputTextField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
-            if !code.isEmpty {
-                Task {
-                    await self.submitGoogleAuthCode(code: code)
-                }
-            } else {
-                authStatus = .error("授权码不能为空")
-                errorMessage = "授权码不能为空"
-            }
-        } else {
-            // 用户取消了授权
-            authStatus = .notAuthenticated
-            errorMessage = nil
-        }
-    }
+
     
     private func submitGoogleAuthCode(code: String) async {
         print("提交 Google 授权码...")
@@ -231,6 +198,7 @@ class AuthService: ObservableObject {
             print("Google 登录成功，更新认证状态")
             authStatus = .authenticated
             showAuthDialog = false
+            showAuthCodeInput = false
             errorMessage = nil
         } else {
             print("Google 授权码提交失败")
@@ -247,6 +215,15 @@ class AuthService: ObservableObject {
     
     func closeAuthDialog() {
         showAuthDialog = false
+    }
+    
+    func closeAuthCodeInput() {
+        showAuthCodeInput = false
+    }
+    
+    func submitAuthCode(code: String) async -> Bool {
+        await submitGoogleAuthCode(code: code)
+        return authStatus == .authenticated
     }
     
     func isAuthenticated() -> Bool {

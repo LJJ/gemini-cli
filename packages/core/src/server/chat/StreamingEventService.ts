@@ -135,6 +135,11 @@ export class StreamingEventService {
     }
   }
 
+  public sendWorkspaceEvent(res: express.Response, workspacePath: string, currentPath: string, description?: string): void {
+    const event = StreamingEventFactory.createWorkspaceEvent(workspacePath, currentPath, description);
+    this.writeEvent(res, event);
+  }
+
   private writeEvent(res: express.Response, event: StreamingEvent): void {
     // 检查响应是否已经结束，避免 ERR_STREAM_WRITE_AFTER_END 错误
     if (res.writableEnded || res.destroyed) {

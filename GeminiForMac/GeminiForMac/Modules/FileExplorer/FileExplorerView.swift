@@ -11,12 +11,20 @@ import Factory
 
 struct FileExplorerView: View {
     @StateObject private var fileExplorerVM = FileExplorerVM()
+    @ObservedObject private var chatService = Container.shared.chatService.resolve()
     
     var body: some View {
         VStack(spacing: 0) {
             // 顶部工具栏
             FileExplorerToolbar(viewModel: fileExplorerVM)
             
+            Divider()
+            
+            // 工作区信息显示
+            WorkspaceDisplayBar(
+                workspacePath: chatService.currentWorkspace,
+                currentPath: chatService.currentPath
+            )
             Divider()
             
             // 选择状态显示
@@ -211,6 +219,75 @@ struct PathDisplayBar: View {
         .padding(.horizontal, 12)
         .padding(.vertical, 4)
         .background(Color(NSColor.controlBackgroundColor))
+    }
+}
+
+struct WorkspaceDisplayBar: View {
+    let workspacePath: String
+    let currentPath: String
+    @ObservedObject private var chatService = Container.shared.chatService.resolve()
+    
+    private var isInWorkspace: Bool {
+        return currentPath.hasPrefix(workspacePath)
+    }
+    
+    private var relativePath: String {
+        if isInWorkspace && currentPath != workspacePath {
+            let relative = String(currentPath.dropFirst(workspacePath.count))
+            return relative.hasPrefix("/") ? String(relative.dropFirst()) : relative
+        }
+        return ""
+    }
+    
+    var body: some View {
+        VStack(spacing: 2) {
+            // 工作区路径
+            HStack {
+                Image(systemName: "folder")
+                    .font(.caption2)
+                    .foregroundColor(.blue)
+                
+                Text("工作区:")
+                    .font(.caption2)
+                    .fontWeight(.medium)
+                    .foregroundColor(.blue)
+                
+                if workspacePath.isEmpty {
+                    Text("未设置")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                        .italic()
+                } else {
+                    Text(workspacePath)
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                }
+                
+                Spacer()
+            }
+            
+            // 相对路径（如果在工作区内）
+            if !relativePath.isEmpty {
+                HStack {
+                    Image(systemName: "arrow.right")
+                        .font(.caption2)
+                        .foregroundColor(.green)
+                    
+                    Text(relativePath)
+                        .font(.caption2)
+                        .foregroundColor(.green)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                    
+                    Spacer()
+                }
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 4)
+        .background(Color.blue.opacity(0.05))
     }
 }
 

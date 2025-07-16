@@ -8,18 +8,8 @@
 import SwiftUI
 
 struct ProxySettingsView: View {
-    @StateObject private var proxyService = ProxyService()
+    @StateObject private var proxyVM = ProxySettingsVM()
     @Environment(\.dismiss) private var dismiss
-    
-    @State private var isEnabled = false
-    @State private var host = "127.0.0.1"
-    @State private var port = "7890"
-    @State private var proxyType = "http"
-    @State private var showAlert = false
-    @State private var alertMessage = ""
-    @State private var alertTitle = ""
-    
-    private let proxyTypes = ["http", "https", "socks"]
     
     var body: some View {
         VStack(spacing: 20) {
@@ -31,17 +21,17 @@ struct ProxySettingsView: View {
             
             // 启用/禁用切换
             VStack(alignment: .leading, spacing: 10) {
-                Toggle("启用代理", isOn: $isEnabled)
+                Toggle("启用代理", isOn: $proxyVM.isEnabled)
                     .font(.headline)
                 
-                if isEnabled {
+                if proxyVM.isEnabled {
                     VStack(alignment: .leading, spacing: 12) {
                         // 主机地址
                         VStack(alignment: .leading, spacing: 4) {
                             Text("主机地址")
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
-                            TextField("127.0.0.1", text: $host)
+                            TextField("127.0.0.1", text: $proxyVM.host)
                                 .textFieldStyle(RoundedBorderTextFieldStyle())
                         }
                         
@@ -50,7 +40,7 @@ struct ProxySettingsView: View {
                             Text("端口号")
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
-                            TextField("7890", text: $port)
+                            TextField("7890", text: $proxyVM.port)
                                 .textFieldStyle(RoundedBorderTextFieldStyle())
                         }
                         
@@ -59,8 +49,8 @@ struct ProxySettingsView: View {
                             Text("代理类型")
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
-                            Picker("代理类型", selection: $proxyType) {
-                                ForEach(proxyTypes, id: \.self) { type in
+                            Picker("代理类型", selection: $proxyVM.proxyType) {
+                                ForEach(proxyVM.proxyTypes, id: \.self) { type in
                                     Text(type.uppercased()).tag(type)
                                 }
                             }
@@ -68,12 +58,12 @@ struct ProxySettingsView: View {
                         }
                     }
                     .padding(.leading, 20)
-                    .animation(.easeInOut(duration: 0.2), value: isEnabled)
+                    .animation(.easeInOut(duration: 0.2), value: proxyVM.isEnabled)
                 }
             }
             
             // 当前状态显示
-            if let config = proxyService.currentConfig {
+            if let config = proxyVM.currentConfig {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("当前状态")
                         .font(.headline)
@@ -98,7 +88,7 @@ struct ProxySettingsView: View {
             }
             
             // 错误信息
-            if let error = proxyService.lastError {
+            if let error = proxyVM.lastError {
                 Text(error)
                     .foregroundColor(.red)
                     .font(.caption)
@@ -112,13 +102,14 @@ struct ProxySettingsView: View {
                 // 测试连接按钮
                 Button("测试连接") {
                     Task {
-                        let success = await proxyService.testProxy()
-                        alertTitle = "连接测试"
-                        alertMessage = success ? "代理连接正常" : "代理连接失败"
-                        showAlert = true
+                        let success = await proxyVM.testProxy()
+                        proxyVM.showAlert(
+                            title: "连接测试",
+                            message: success ? "代理连接正常" : "代理连接失败"
+                        )
                     }
                 }
-                .disabled(proxyService.isLoading || !isEnabled)
+                .disabled(proxyVM.isLoading || !proxyVM.isEnabled)
                 
                 Spacer()
                 
@@ -131,62 +122,36 @@ struct ProxySettingsView: View {
                 // 保存按钮
                 Button("保存") {
                     Task {
-                        let success: Bool
-                        if isEnabled {
-                            guard let portNumber = Int(port), !host.isEmpty else {
-                                alertTitle = "输入错误"
-                                alertMessage = "请输入有效的主机地址和端口号"
-                                showAlert = true
-                                return
-                            }
-                            success = await proxyService.enableProxy(host: host, port: portNumber, type: proxyType)
-                        } else {
-                            success = await proxyService.disableProxy()
-                        }
-                        
+                        let success = await proxyVM.saveConfig()
                         if success {
                             dismiss()
-                        } else {
-                            alertTitle = "保存失败"
-                            alertMessage = proxyService.lastError ?? "未知错误"
-                            showAlert = true
                         }
                     }
                 }
                 .keyboardShortcut(.return)
-                .disabled(proxyService.isLoading)
+                .disabled(proxyVM.isLoading)
             }
             .padding(.bottom)
         }
         .padding()
-        .frame(width: 400, height: 350)
+        .frame(width: 400, height: 450)
         .onAppear {
             Task {
-                await proxyService.loadConfig()
-                updateUIFromConfig()
+                await proxyVM.loadConfig()
             }
         }
-        .alert(alertTitle, isPresented: $showAlert) {
+        .alert(proxyVM.alertTitle, isPresented: $proxyVM.showAlert) {
             Button("确定", role: .cancel) { }
         } message: {
-            Text(alertMessage)
+            Text(proxyVM.alertMessage)
         }
         .overlay {
-            if proxyService.isLoading {
+            if proxyVM.isLoading {
                 ProgressView()
                     .scaleEffect(0.8)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .background(Color.black.opacity(0.1))
             }
-        }
-    }
-    
-    private func updateUIFromConfig() {
-        if let config = proxyService.currentConfig {
-            isEnabled = config.enabled
-            host = config.host ?? "127.0.0.1"
-            port = config.port != nil ? String(config.port!) : "7890"
-            proxyType = config.type ?? "http"
         }
     }
 }

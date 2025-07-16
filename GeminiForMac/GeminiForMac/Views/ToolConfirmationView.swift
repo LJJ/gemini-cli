@@ -104,7 +104,6 @@ struct ToolConfirmationView: View {
                             newContent: confirmation.confirmationDetails.newStr ?? "",
                             filename: confirmation.confirmationDetails.fileName
                         )
-                        .frame(height: 400)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     
@@ -264,9 +263,8 @@ struct ToolConfirmationView: View {
         .shadow(radius: 10)
         .frame(
             minWidth: needsLargeWindow ? 900 : 400,
-            maxWidth: needsLargeWindow ? 1200 : 600,
-            minHeight: needsLargeWindow ? 600 : 200,
-            maxHeight: needsLargeWindow ? 800 : 400
+            maxWidth: needsLargeWindow ? .infinity : 600,
+            minHeight: needsLargeWindow ? 600 : 200
         )
     }
 }
