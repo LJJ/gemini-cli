@@ -109,6 +109,7 @@ class FileExplorerVM: ObservableObject {
         do {
             if let response = await apiService.listDirectory(path: path) {
                 navigationState.currentPath = response.path
+                // currentPath = response.path  // 更新published的currentPath // Removed
                 items = sortItems(response.items)
                 
                 // 添加到历史记录
@@ -120,7 +121,7 @@ class FileExplorerVM: ObservableObject {
                 errorMessage = "无法加载目录内容"
             }
         } catch {
-            errorMessage = "加载目录失败: \\(error.localizedDescription)"
+            errorMessage = "加载目录失败: \(error.localizedDescription)"
         }
         
         isLoading = false
@@ -139,7 +140,7 @@ class FileExplorerVM: ObservableObject {
                 await restoreExpandedSubDirectories(in: sortedChildren)
             }
         } catch {
-            print("加载子目录失败: \\(error.localizedDescription)")
+            print("加载子目录失败: \(error.localizedDescription)")
         }
     }
     
@@ -195,7 +196,7 @@ class FileExplorerVM: ObservableObject {
     
     func navigateToDirectory(_ item: DirectoryItem) {
         guard item.isDirectory else { return }
-        print("🔄 双击进入目录: \\(item.name) - \\(item.path)")
+        print("🔄 双击进入目录: \(item.name) - \(item.path)")
         Task {
             await loadDirectory(path: item.path)
         }

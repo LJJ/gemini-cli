@@ -55,6 +55,9 @@ struct StreamEvent: Codable {
         case .toolConfirmation:
             let toolConfirmationData = try container.decode(ToolConfirmationEventData.self, forKey: .data)
             self.data = .toolConfirmation(toolConfirmationData)
+        case .workspace:
+            let workspaceData = try container.decode(WorkspaceEventData.self, forKey: .data)
+            self.data = .workspace(workspaceData)
         case .complete:
             let completeData = try container.decode(CompleteEventData.self, forKey: .data)
             self.data = .complete(completeData)
@@ -85,6 +88,8 @@ struct StreamEvent: Codable {
             try container.encode(toolResultData, forKey: .data)
         case .toolConfirmation(let toolConfirmationData):
             try container.encode(toolConfirmationData, forKey: .data)
+        case .workspace(let workspaceData):
+            try container.encode(workspaceData, forKey: .data)
         case .complete(let completeData):
             try container.encode(completeData, forKey: .data)
         case .error(let errorData):
@@ -105,6 +110,7 @@ enum EventType: String, Codable {
     case toolExecution = "tool_execution"
     case toolResult = "tool_result"
     case toolConfirmation = "tool_confirmation"
+    case workspace = "workspace"
     case complete = "complete"
     case error = "error"
 }
@@ -117,6 +123,7 @@ enum EventData {
     case toolExecution(ToolExecutionEventData)
     case toolResult(ToolResultEventData)
     case toolConfirmation(ToolConfirmationEventData)
+    case workspace(WorkspaceEventData)
     case complete(CompleteEventData)
     case error(ErrorEventData)
 }
@@ -194,7 +201,14 @@ struct CompleteEventData: Codable {
     let message: String?
 }
 
-// 8. 错误事件数据
+// 8. 工作区事件数据
+struct WorkspaceEventData: Codable {
+    let workspacePath: String
+    let currentPath: String
+    let description: String?
+}
+
+// 9. 错误事件数据
 struct ErrorEventData: Codable {
     let message: String
     let code: ErrorCode?
@@ -262,6 +276,7 @@ extension StreamEvent {
     var isToolExecution: Bool { type == .toolExecution }
     var isToolResult: Bool { type == .toolResult }
     var isToolConfirmation: Bool { type == .toolConfirmation }
+    var isWorkspace: Bool { type == .workspace }
     var isComplete: Bool { type == .complete }
     var isError: Bool { type == .error }
 } 

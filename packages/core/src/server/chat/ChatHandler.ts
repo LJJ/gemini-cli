@@ -77,6 +77,16 @@ export class ChatHandler {
         throw createError(ErrorCode.CLIENT_NOT_INITIALIZED);
       }
 
+      // 发送workspace事件，让客户端知道当前的workspace和currentPath
+      const workspacePath = config.getTargetDir();
+      const currentPath = config.getWorkingDir();
+      this.streamingEventService.sendWorkspaceEvent(
+        res, 
+        workspacePath, 
+        currentPath, 
+        `工作区: ${workspacePath}，当前路径: ${currentPath}`
+      );
+
       // 初始化工具协调器
       await this.toolOrchestrator.initializeScheduler(config);
 
