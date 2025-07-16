@@ -263,7 +263,7 @@ struct ToolConfirmationView: View {
         .shadow(radius: 10)
         .frame(
             minWidth: needsLargeWindow ? 900 : 400,
-            maxWidth: needsLargeWindow ? .infinity : 600,
+            maxWidth: .infinity,
             minHeight: needsLargeWindow ? 600 : 200
         )
     }

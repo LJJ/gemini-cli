@@ -11,34 +11,21 @@ import Factory
 struct MessageInputView: View {
     @ObservedObject private var chatService = Container.shared.chatService.resolve()
     @StateObject private var messageInputVM = MessageInputVM()
-    @FocusState private var isTextFieldFocused: Bool
-    
+    @State private var dynamicHeight: CGFloat = 38
+
     var body: some View {
         VStack(spacing: 12) {
-            // 顶部输入框
-            GeometryReader { geometry in
-                TextEditor(text: $messageInputVM.messageText)
-                    .focused($isTextFieldFocused)
-                    .onSubmit({
-                        messageInputVM.sendMessage()
-                        isTextFieldFocused = false
-                    })
-                    .padding(8) // Add padding to mimic TextField's inner padding
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 6)
-                            .stroke(Color.gray.opacity(0.3), lineWidth: 1)
-                    )
-                    .scrollContentBackground(.hidden) // Hide default TextEditor background
-                    .background(Color(NSColor.controlBackgroundColor)) // Set background color
-                    .animation(.easeInOut(duration: 0.2), value: messageInputVM.textHeight) // 添加高度变化动画
-                    .onAppear {
-                        messageInputVM.updateTextWidth(geometry.size.width)
-                    }
-                    .onChange(of: geometry.size.width) { newWidth in
-                        messageInputVM.updateTextWidth(newWidth)
-                    }
+            // Custom Text View
+            CustomTextView(text: $messageInputVM.messageText, dynamicHeight: $dynamicHeight) {
+                messageInputVM.sendMessage()
             }
-            .frame(height: messageInputVM.textHeight)
+            .frame(height: dynamicHeight)
+            .background(Color(NSColor.controlBackgroundColor))
+            .cornerRadius(6)
+            .overlay(
+                RoundedRectangle(cornerRadius: 6)
+                    .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+            )
             
             // 底部控制栏
             HStack(spacing: 12) {
@@ -113,7 +100,6 @@ struct MessageInputView: View {
                 } else {
                     Button(action: {
                         messageInputVM.sendMessage()
-                        isTextFieldFocused = false
                     }) {
                         Image(systemName: "arrow.up.circle.fill")
                             .font(.title2)
