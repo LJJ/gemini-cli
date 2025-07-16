@@ -18,6 +18,7 @@ export type EventType =
   | 'tool_execution' 
   | 'tool_result' 
   | 'tool_confirmation' 
+  | 'workspace'
   | 'complete' 
   | 'error';
 
@@ -29,6 +30,7 @@ export type EventData =
   | ToolExecutionEventData
   | ToolResultEventData
   | ToolConfirmationEventData
+  | WorkspaceEventData
   | CompleteEventData
   | ErrorEventData;
 
@@ -93,6 +95,13 @@ export interface ErrorEventData {
   message: string;
   code: string;
   details?: string;
+}
+
+// 8. 工作区事件数据
+export interface WorkspaceEventData {
+  workspacePath: string;
+  currentPath: string;
+  description?: string;
 }
 
 // 事件工厂函数
@@ -183,6 +192,14 @@ export class StreamingEventFactory {
     return {
       type: 'error',
       data: { message, code, details },
+      timestamp: new Date().toISOString()
+    };
+  }
+
+  static createWorkspaceEvent(workspacePath: string, currentPath: string, description?: string): StreamingEvent {
+    return {
+      type: 'workspace',
+      data: { workspacePath, currentPath, description },
       timestamp: new Date().toISOString()
     };
   }

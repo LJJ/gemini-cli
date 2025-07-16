@@ -9,15 +9,11 @@ import SwiftUI
 import Factory
 
 struct AuthDialogView: View {
+    @StateObject private var authVM = AuthDialogVM()
     @StateObject private var authService = Container.shared.authService.resolve()
-    @State private var selectedAuthType: AuthType = .loginWithGoogle
-    @State private var apiKey = ""
-    @State private var googleCloudProject = ""
-    @State private var googleCloudLocation = ""
-    @State private var validationError: String?
     
     var body: some View {
-        VStack(spacing: 20) {
+        VStack(spacing: 16) {
             // 标题
             HStack {
                 Image(systemName: "person.circle.fill")
@@ -38,37 +34,36 @@ struct AuthDialogView: View {
                 ForEach(AuthType.allCases, id: \.self) { authType in
                     AuthTypeRow(
                         authType: authType,
-                        isSelected: selectedAuthType == authType,
+                        isSelected: authVM.selectedAuthType == authType,
                         onSelect: {
-                            selectedAuthType = authType
-                            validationError = nil
+                            authVM.selectAuthType(authType)
                         }
                     )
                 }
             }
             
             // 认证配置表单
-            if selectedAuthType == .useGemini {
+            if authVM.selectedAuthType == .useGemini {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Gemini API Key")
                         .font(.subheadline)
                         .fontWeight(.medium)
                     
-                    SecureField("输入你的 Gemini API Key", text: $apiKey)
+                    SecureField("输入你的 Gemini API Key", text: $authVM.apiKey)
                         .textFieldStyle(.roundedBorder)
                     
                     Text("从 [AI Studio](https://aistudio.google.com/) 获取 API Key")
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
-            } else if selectedAuthType == .useVertexAI {
+            } else if authVM.selectedAuthType == .useVertexAI {
                 VStack(alignment: .leading, spacing: 12) {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Google API Key")
                             .font(.subheadline)
                             .fontWeight(.medium)
                         
-                        SecureField("输入你的 Google API Key", text: $apiKey)
+                        SecureField("输入你的 Google API Key", text: $authVM.apiKey)
                             .textFieldStyle(.roundedBorder)
                     }
                     
@@ -77,7 +72,7 @@ struct AuthDialogView: View {
                             .font(.subheadline)
                             .fontWeight(.medium)
                         
-                        TextField("输入你的 Google Cloud Project ID", text: $googleCloudProject)
+                        TextField("输入你的 Google Cloud Project ID", text: $authVM.googleCloudProject)
                             .textFieldStyle(.roundedBorder)
                     }
                     
@@ -86,14 +81,14 @@ struct AuthDialogView: View {
                             .font(.subheadline)
                             .fontWeight(.medium)
                         
-                        TextField("例如: us-central1", text: $googleCloudLocation)
+                        TextField("例如: us-central1", text: $authVM.googleCloudLocation)
                             .textFieldStyle(.roundedBorder)
                     }
                 }
             }
             
             // 错误信息
-            if let error = validationError {
+            if let error = authVM.validationError {
                 HStack {
                     Image(systemName: "exclamationmark.triangle.fill")
                         .foregroundColor(.red)
@@ -109,7 +104,7 @@ struct AuthDialogView: View {
             }
             
             // 认证状态
-            if case .authenticating = authService.authStatus {
+            if authVM.isAuthenticating {
                 HStack {
                     ProgressView()
                         .scaleEffect(0.8)
@@ -123,7 +118,7 @@ struct AuthDialogView: View {
             // 按钮
             HStack(spacing: 12) {
                 Button("取消") {
-                    authService.closeAuthDialog()
+                    authVM.closeAuthDialog()
                 }
                 .buttonStyle(.bordered)
                 
@@ -131,43 +126,22 @@ struct AuthDialogView: View {
                 
                 Button("确认") {
                     Task {
-                        await authenticate()
+                        await authVM.authenticate()
                     }
                 }
                 .buttonStyle(.borderedProminent)
-                .disabled(authService.authStatus == .authenticating)
+                .disabled(!authVM.canAuthenticate)
             }
         }
-        .padding(24)
-        .frame(maxWidth: 500)
+        .padding(20)
+        .frame(minWidth: 450, idealWidth: 500, minHeight: 400)
         .background(Color(NSColor.controlBackgroundColor))
         .cornerRadius(12)
         .shadow(radius: 10)
-    }
-    
-    private func authenticate() async {
-        // 验证输入
-        let error = authService.validateAuthMethod(
-            selectedAuthType,
-            apiKey: apiKey.isEmpty ? nil : apiKey,
-            googleCloudProject: googleCloudProject.isEmpty ? nil : googleCloudProject,
-            googleCloudLocation: googleCloudLocation.isEmpty ? nil : googleCloudLocation
-        )
-        
-        if let error = error {
-            validationError = error
-            return
+        .sheet(isPresented: $authService.showAuthCodeInput) {
+            AuthCodeView()
+                .frame(width: 500, height: 400)
         }
-        
-        validationError = nil
-        
-        // 执行认证
-        await authService.authenticate(
-            authType: selectedAuthType,
-            apiKey: apiKey.isEmpty ? nil : apiKey,
-            googleCloudProject: googleCloudProject.isEmpty ? nil : googleCloudProject,
-            googleCloudLocation: googleCloudLocation.isEmpty ? nil : googleCloudLocation
-        )
     }
 }
 
