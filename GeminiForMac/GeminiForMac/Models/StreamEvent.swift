@@ -241,6 +241,11 @@ struct ErrorEventData: Codable {
     var requiresInputValidation: Bool {
         return code?.requiresInputValidation ?? false
     }
+    
+    /// 是否需要用户配置项目设置
+    var requiresProjectConfiguration: Bool {
+        return code?.requiresProjectConfiguration ?? false
+    }
 }
 
 // MARK: - 事件解析工具

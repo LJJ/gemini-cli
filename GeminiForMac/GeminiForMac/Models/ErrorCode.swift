@@ -19,6 +19,7 @@ enum ErrorCode: String, Codable, CaseIterable {
     case authRequired = "AUTH_REQUIRED"
     case authConfigFailed = "AUTH_CONFIG_FAILED"
     case oauthInitFailed = "OAUTH_INIT_FAILED"
+    case googleCloudProjectRequired = "GOOGLE_CLOUD_PROJECT_REQUIRED"
     
     // 客户端初始化错误
     case clientNotInitialized = "CLIENT_NOT_INITIALIZED"
@@ -57,6 +58,8 @@ extension ErrorCode {
             return "认证配置失败"
         case .oauthInitFailed:
             return "OAuth 客户端初始化失败"
+        case .googleCloudProjectRequired:
+            return "Google Cloud Project 配置错误"
         case .clientNotInitialized:
             return "Gemini 客户端未初始化"
         case .clientInitFailed:
@@ -127,6 +130,16 @@ extension ErrorCode {
         }
     }
     
+    /// 是否需要用户配置项目设置
+    var requiresProjectConfiguration: Bool {
+        switch self {
+        case .googleCloudProjectRequired:
+            return true
+        default:
+            return false
+        }
+    }
+    
     /// 获取用户友好的错误提示
     var userFriendlyMessage: String {
         switch self {
@@ -138,6 +151,8 @@ extension ErrorCode {
             return "认证配置失败，请检查设置"
         case .oauthInitFailed:
             return "Google 登录失败，请检查网络连接或尝试使用 API Key"
+        case .googleCloudProjectRequired:
+            return "Google Cloud Project 配置错误，请检查相关设置"
         case .clientNotInitialized:
             return "客户端未初始化，请重试"
         case .clientInitFailed:

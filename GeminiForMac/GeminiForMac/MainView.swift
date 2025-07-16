@@ -112,6 +112,13 @@ struct MainView: View {
         .sheet(isPresented: $proxySettingsManager.showProxySettings) {
             ProxySettingsView()
         }
+        // 项目配置弹窗
+        .sheet(isPresented: $chatService.showProjectConfiguration) {
+            ProjectConfigurationView(
+                isPresented: $chatService.showProjectConfiguration,
+                errorMessage: chatService.projectConfigurationMessage
+            )
+        }
     }
 }
 
