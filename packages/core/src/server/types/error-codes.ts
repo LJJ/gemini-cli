@@ -16,6 +16,7 @@ export enum ErrorCode {
   AUTH_REQUIRED = 'AUTH_REQUIRED',
   AUTH_CONFIG_FAILED = 'AUTH_CONFIG_FAILED',
   OAUTH_INIT_FAILED = 'OAUTH_INIT_FAILED',
+  GOOGLE_CLOUD_PROJECT_REQUIRED = 'GOOGLE_CLOUD_PROJECT_REQUIRED',
   
   // 客户端初始化错误
   CLIENT_NOT_INITIALIZED = 'CLIENT_NOT_INITIALIZED',
@@ -49,6 +50,7 @@ export const ERROR_DESCRIPTIONS: Record<ErrorCode, string> = {
   [ErrorCode.AUTH_REQUIRED]: '用户未认证，请先完成认证设置',
   [ErrorCode.AUTH_CONFIG_FAILED]: '认证配置失败',
   [ErrorCode.OAUTH_INIT_FAILED]: 'OAuth 客户端初始化失败',
+  [ErrorCode.GOOGLE_CLOUD_PROJECT_REQUIRED]: 'Google Cloud Project 配置错误',
   [ErrorCode.CLIENT_NOT_INITIALIZED]: 'Gemini 客户端未初始化',
   [ErrorCode.CLIENT_INIT_FAILED]: 'Gemini 客户端初始化失败',
   [ErrorCode.STREAM_ERROR]: '流式处理错误',
@@ -72,6 +74,7 @@ export const ERROR_TO_HTTP_STATUS: Record<ErrorCode, number> = {
   [ErrorCode.AUTH_REQUIRED]: 401,
   [ErrorCode.AUTH_CONFIG_FAILED]: 500,
   [ErrorCode.OAUTH_INIT_FAILED]: 500,
+  [ErrorCode.GOOGLE_CLOUD_PROJECT_REQUIRED]: 400,
   [ErrorCode.CLIENT_NOT_INITIALIZED]: 400,
   [ErrorCode.CLIENT_INIT_FAILED]: 500,
   [ErrorCode.STREAM_ERROR]: 500,

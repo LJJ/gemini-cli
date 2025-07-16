@@ -11,6 +11,7 @@ import { createToolRegistry } from '../../config/config.js';
 import { DEFAULT_GEMINI_FLASH_MODEL } from '../../config/models.js';
 import { ErrorCode, createError } from '../../server/types/error-codes.js';
 import { ConfigCache } from './ConfigCache.js';
+import { ProjectService } from '../project/ProjectService.js';
 
 /**
  * 工作区相关的服务容器 - 只包含与workspace相关的服务
@@ -318,6 +319,13 @@ export class ConfigFactory {
   ): Promise<void> {
     const geminiClient = container.geminiClient!;
     
+    // 确保使用 ProjectService 缓存的项目ID
+    const cachedProjectId = ProjectService.getCurrentProjectId();
+    if (cachedProjectId) {
+      console.log('ConfigFactory: 使用缓存的项目ID:', cachedProjectId);
+      process.env.GOOGLE_CLOUD_PROJECT = cachedProjectId;
+    }
+    
     try {
       // 尝试初始化 CodeAssist
       console.log('ConfigFactory: 尝试初始化 CodeAssist...');
@@ -328,6 +336,14 @@ export class ConfigFactory {
       console.log('ConfigFactory: CodeAssist 初始化成功');
     } catch (codeAssistError) {
       console.warn('ConfigFactory: CodeAssist 初始化失败，降级到普通 Gemini API:', codeAssistError);
+      
+      // 检查是否是 GOOGLE_CLOUD_PROJECT 错误
+      if (codeAssistError instanceof Error && 
+          (codeAssistError.message.includes('GOOGLE_CLOUD_PROJECT') || 
+           codeAssistError.constructor.name === 'ProjectIdRequiredError')) {
+        // 传递原始错误信息，保留完整的错误描述和链接
+        throw createError(ErrorCode.GOOGLE_CLOUD_PROJECT_REQUIRED, codeAssistError.message);
+      }
       
       try {
         console.log('ConfigFactory: 尝试使用普通 Gemini API...');
