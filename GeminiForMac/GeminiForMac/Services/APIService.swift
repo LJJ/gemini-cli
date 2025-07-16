@@ -212,6 +212,33 @@ final class APIService: Sendable {
         return baseResponse?.data
     }
     
+    // 获取 Google 授权 URL（用于 code 登录流程）
+    func getGoogleAuthUrl() async -> GoogleAuthUrlData? {
+        print("发送获取 Google 授权 URL 请求...")
+        
+        let baseResponse: BaseResponse<GoogleAuthUrlData>? = await postRequest(path: "/auth/google-auth-url", body: [:])
+        
+        if let data = baseResponse?.data {
+            print("Google 授权 URL 响应解析成功: \(data)")
+        }
+        
+        return baseResponse?.data
+    }
+    
+    // 提交 Google 授权码（用于 code 登录流程）
+    func submitGoogleAuthCode(code: String) async -> AuthResponseData? {
+        print("发送 Google 授权码请求...")
+        
+        let body: [String: Any] = ["code": code]
+        let baseResponse: BaseResponse<AuthResponseData>? = await postRequest(path: "/auth/google-auth-code", body: body)
+        
+        if let data = baseResponse?.data {
+            print("Google 授权码响应解析成功: \(data)")
+        }
+        
+        return baseResponse?.data
+    }
+    
     // 获取认证状态
     func getAuthStatus() async -> AuthStatusData? {
         let baseResponse: BaseResponse<AuthStatusData>? = await getRequest(path: "/auth/status")
