@@ -112,13 +112,13 @@ struct ToolConfirmationView: View {
                     if let content = confirmation.confirmationDetails.content, !content.isEmpty {
                         VStack(alignment: .leading, spacing: 8) {
                             HStack {
-                                Text("将要写入的内容:")
+                                Text(String(localized: "将要写入的内容:"))
                                     .font(.subheadline)
                                     .fontWeight(.medium)
                                 
                                 Spacer()
                                 
-                                Text("请审查文件内容")
+                                Text(String(localized: "请审查文件内容"))
                                     .font(.caption)
                                     .foregroundColor(.green)
                                     .padding(.horizontal, 8)
@@ -147,7 +147,7 @@ struct ToolConfirmationView: View {
                     // write_file tool: 只显示 content
                     if let content = confirmation.confirmationDetails.content, !content.isEmpty {
                         VStack(alignment: .leading, spacing: 8) {
-                            Text(confirmation.confirmationDetails.description ?? "执行命令")
+                            Text(confirmation.confirmationDetails.description ?? String(localized: "执行命令"))
                                 .font(.subheadline)
                                 .fontWeight(.medium)
                             
@@ -172,7 +172,7 @@ struct ToolConfirmationView: View {
             case .info:
                 if let prompt = confirmation.confirmationDetails.prompt {
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("操作描述:")
+                        Text(String(localized: "操作描述:"))
                             .font(.subheadline)
                             .fontWeight(.medium)
                         
@@ -187,12 +187,12 @@ struct ToolConfirmationView: View {
                 
             case .mcp:
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("MCP 工具:")
+                    Text(String(localized: "MCP 工具:"))
                         .font(.subheadline)
                         .fontWeight(.medium)
                     
                     if let serverName = confirmation.confirmationDetails.serverName {
-                        Text("服务器: \(serverName)")
+                        Text(String(format: String(localized: "服务器: %@"), serverName))
                             .font(.body)
                     }
                     Text("工具: \(confirmation.confirmationDetails.toolName)")
@@ -209,25 +209,25 @@ struct ToolConfirmationView: View {
                     // 编辑类型的按钮
                     VStack(spacing: 8) {
                         HStack(spacing: 12) {
-                            Button("允许一次") {
+                            Button(String(localized: "允许一次")) {
                                 onConfirm(.proceedOnce)
                             }
                             .buttonStyle(.borderedProminent)
                             
-                            Button("总是允许") {
+                            Button(String(localized: "总是允许")) {
                                 onConfirm(.proceedAlways)
                             }
                             .buttonStyle(.bordered)
                         }
                         
                         HStack(spacing: 12) {
-                            Button("使用编辑器修改") {
+                            Button(String(localized: "使用编辑器修改")) {
                                 onConfirm(.modifyWithEditor)
                             }
                             .buttonStyle(.bordered)
                             .foregroundColor(.orange)
                             
-                            Button("取消") {
+                            Button(String(localized: "取消")) {
                                 onCancel()
                             }
                             .buttonStyle(.bordered)
@@ -238,18 +238,18 @@ struct ToolConfirmationView: View {
                 default:
                     // 其他类型的按钮
                     HStack(spacing: 12) {
-                        Button("允许一次") {
+                        Button(String(localized: "允许一次")) {
                             onConfirm(.proceedOnce)
                         }
                         .buttonStyle(.borderedProminent)
                         
-                        Button("总是允许") {
+                        Button(String(localized: "总是允许")) {
                             onConfirm(.proceedAlways)
                         }
                         .buttonStyle(.bordered)
                     }
                     
-                    Button("取消") {
+                    Button(String(localized: "取消")) {
                         onCancel()
                     }
                     .buttonStyle(.bordered)
@@ -277,7 +277,7 @@ struct ToolConfirmationView: View {
             toolName: .edit,
             confirmationDetails: ToolConfirmationDetails(
                 type: .exec,
-                title: "确认执行命令",
+                title: String(localized: "确认执行命令"),
                 command: "ls -la",
                 rootCommand: "ls",
                 fileName: "filename",

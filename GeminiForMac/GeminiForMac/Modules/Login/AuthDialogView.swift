@@ -49,7 +49,7 @@ struct AuthDialogView: View {
                         .font(.subheadline)
                         .fontWeight(.medium)
                     
-                    SecureField("输入你的 Gemini API Key", text: $authVM.apiKey)
+                    SecureField(String(localized: "输入你的 Gemini API Key"), text: $authVM.apiKey)
                         .textFieldStyle(.roundedBorder)
                     
                     Text("从 [AI Studio](https://aistudio.google.com/) 获取 API Key")
@@ -63,7 +63,7 @@ struct AuthDialogView: View {
                             .font(.subheadline)
                             .fontWeight(.medium)
                         
-                        SecureField("输入你的 Google API Key", text: $authVM.apiKey)
+                        SecureField(String(localized: "输入你的 Google API Key"), text: $authVM.apiKey)
                             .textFieldStyle(.roundedBorder)
                     }
                     
@@ -72,7 +72,7 @@ struct AuthDialogView: View {
                             .font(.subheadline)
                             .fontWeight(.medium)
                         
-                        TextField("输入你的 Google Cloud Project ID", text: $authVM.googleCloudProject)
+                        TextField(String(localized: "输入你的 Google Cloud Project ID"), text: $authVM.googleCloudProject)
                             .textFieldStyle(.roundedBorder)
                     }
                     

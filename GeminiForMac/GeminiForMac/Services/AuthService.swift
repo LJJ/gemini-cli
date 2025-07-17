@@ -78,19 +78,19 @@ class AuthService: ObservableObject {
             
         case .useGemini:
             if apiKey?.isEmpty != false {
-                return "请输入 Gemini API Key"
+                return String(localized: "请输入 Gemini API Key")
             }
             return nil
             
         case .useVertexAI:
             if apiKey?.isEmpty != false {
-                return "请输入 Google API Key"
+                return String(localized: "请输入 Google API Key")
             }
             if googleCloudProject?.isEmpty != false {
-                return "请输入 Google Cloud Project ID"
+                return String(localized: "请输入 Google Cloud Project ID")
             }
             if googleCloudLocation?.isEmpty != false {
-                return "请输入 Google Cloud Location"
+                return String(localized: "请输入 Google Cloud Location")
             }
             return nil
         }
@@ -139,8 +139,8 @@ class AuthService: ObservableObject {
                     showAuthDialog = false
                 }
             } else {
-                authStatus = .error("无法连接到服务器")
-                errorMessage = "无法连接到服务器"
+                authStatus = .error(String(localized: "无法连接到服务器"))
+                errorMessage = String(localized: "无法连接到服务器")
             }
             
         } catch {
@@ -159,8 +159,8 @@ class AuthService: ObservableObject {
         
         guard let urlResponse = await apiService.getGoogleAuthUrl() else {
             print("获取 Google 授权 URL 失败")
-            authStatus = .error("获取授权 URL 失败，请检查网络连接")
-            errorMessage = "获取授权 URL 失败，请检查网络连接"
+            authStatus = .error(String(localized: "获取授权 URL 失败，请检查网络连接"))
+            errorMessage = String(localized: "获取授权 URL 失败，请检查网络连接")
             return
         }
         
@@ -168,8 +168,8 @@ class AuthService: ObservableObject {
         
         // 第二步：在浏览器中打开授权 URL
         guard let url = URL(string: urlResponse.authUrl) else {
-            authStatus = .error("无效的授权 URL")
-            errorMessage = "无效的授权 URL"
+            authStatus = .error(String(localized: "无效的授权 URL"))
+            errorMessage = String(localized: "无效的授权 URL")
             return
         }
         
@@ -202,8 +202,8 @@ class AuthService: ObservableObject {
             errorMessage = nil
         } else {
             print("Google 授权码提交失败")
-            authStatus = .error("授权码验证失败，请检查授权码是否正确")
-            errorMessage = "授权码验证失败，请检查授权码是否正确"
+            authStatus = .error(String(localized: "授权码验证失败，请检查授权码是否正确"))
+            errorMessage = String(localized: "授权码验证失败，请检查授权码是否正确")
         }
     }
     

@@ -104,8 +104,8 @@ struct ProxySettingsView: View {
                     Task {
                         let success = await proxyVM.testProxy()
                         proxyVM.showAlert(
-                            title: "连接测试",
-                            message: success ? "代理连接正常" : "代理连接失败"
+                            title: String(localized: "连接测试"),
+                            message: success ? String(localized: "代理连接正常") : String(localized: "代理连接失败")
                         )
                     }
                 }

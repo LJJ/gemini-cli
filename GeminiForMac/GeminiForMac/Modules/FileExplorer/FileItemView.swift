@@ -93,6 +93,24 @@ struct FileItemView: View {
         .padding(.horizontal, 8)
         .padding(.vertical, 4)
         .background(backgroundColor)
+        .contextMenu {
+            Button(action: {
+                showInFinder()
+            }) {
+                Label(String(localized: "在 Finder 中显示"), systemImage: "folder")
+            }
+        }
+    }
+    
+    // 在 Finder 中显示文件
+    private func showInFinder() {
+        let fullPath = item.path
+        let url = URL(fileURLWithPath: fullPath)
+        
+        // 使用 NSWorkspace 在 Finder 中显示文件
+        NSWorkspace.shared.selectFile(fullPath, inFileViewerRootedAtPath: "")
+        
+        print("📁 在 Finder 中显示: \(fullPath)")
     }
     
     // 背景颜色
