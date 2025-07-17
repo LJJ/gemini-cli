@@ -33,8 +33,8 @@ struct CustomTextView: NSViewRepresentable {
         // Add internal padding
         textView.textContainerInset = NSSize(width: 8, height: 8)
         
-        // 确保背景和文字颜色设置正确
-        textView.textColor = .textColor
+        // 使用系统适配的文字颜色，支持日夜间模式
+        textView.textColor = NSColor.labelColor
         
         // 强制刷新显示
         textView.needsDisplay = true
@@ -46,9 +46,9 @@ struct CustomTextView: NSViewRepresentable {
         scrollView.documentView = textView
         scrollView.hasVerticalScroller = false
         
-        // 确保 textView 有正确的宽度和布局
+        // 设置合理的文本容器大小以支持动态高度
         textView.maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
-        textView.textContainer?.containerSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
+        textView.textContainer?.containerSize = NSSize(width: 0, height: CGFloat.greatestFiniteMagnitude)
 
         // 设置文本内容，并确保颜色设置生效
         textView.string = text
@@ -71,11 +71,18 @@ struct CustomTextView: NSViewRepresentable {
         if textView.frame.width != scrollViewWidth {
             textView.frame.size.width = scrollViewWidth
             textView.textContainer?.size.width = scrollViewWidth
+            // 宽度变化时重新计算高度
+            context.coordinator.recalculateHeight(for: textView)
         }
         
         if textView.string != text {
             textView.string = text
+            // 文本变化时重新计算高度
+            context.coordinator.recalculateHeight(for: textView)
         }
+        
+        // 确保文字颜色在更新时也保持正确
+        textView.textColor = NSColor.labelColor
     }
 
     @MainActor
@@ -89,27 +96,37 @@ struct CustomTextView: NSViewRepresentable {
         func textDidChange(_ notification: Notification) {
             guard let textView = notification.object as? NSTextView else { return }
             parent.text = textView.string
-            // 确保文本颜色在输入时保持正确
-            textView.textColor = NSColor.black
+            // 使用系统适配的文字颜色，支持日夜间模式
+            textView.textColor = NSColor.labelColor
             recalculateHeight(for: textView)
         }
         
         func recalculateHeight(for textView: NSTextView) {
-            guard let layoutManager = textView.layoutManager, let textContainer = textView.textContainer else { return }
+            guard let layoutManager = textView.layoutManager, 
+                  let textContainer = textView.textContainer else { return }
+            
+            // 确保布局管理器完成布局
+            layoutManager.ensureLayout(for: textContainer)
+            
+            // 获取实际使用的文本区域
             let usedRect = layoutManager.usedRect(for: textContainer)
             
-            // Add vertical insets to the calculated height
+            // 计算内容高度，包括上下内边距
             let contentHeight = usedRect.height + textView.textContainerInset.height * 2
+            
+            // 确保高度在最小值和最大值之间
             let newHeight = min(parent.maxHeight, max(parent.minHeight, contentHeight))
             
+            // 只有当高度变化超过1像素时才更新，避免频繁更新
             if abs(parent.dynamicHeight - newHeight) > 1 {
                 DispatchQueue.main.async {
                     self.parent.dynamicHeight = newHeight
                 }
             }
             
+            // 根据内容是否超出最大高度来决定是否显示滚动条
             if let scrollView = textView.enclosingScrollView {
-                let contentExceedsMax = usedRect.height > (parent.maxHeight - textView.textContainerInset.height * 2)
+                let contentExceedsMax = contentHeight > parent.maxHeight
                 if scrollView.hasVerticalScroller != contentExceedsMax {
                     scrollView.hasVerticalScroller = contentExceedsMax
                 }
