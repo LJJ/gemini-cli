@@ -54,7 +54,7 @@ class ProjectConfigurationVM: ObservableObject {
         let trimmedProjectId = projectId.trimmingCharacters(in: .whitespacesAndNewlines)
         
         guard !trimmedProjectId.isEmpty else {
-            showAlert(title: "输入错误", message: "请输入有效的项目ID")
+            showAlert(title: String(localized: "输入错误"), message: String(localized: "请输入有效的项目ID"))
             isApplying = false
             return false
         }
@@ -66,11 +66,11 @@ class ProjectConfigurationVM: ObservableObject {
             // 2. 重新发起chat初始化流程
             await reinitializeChatFlow()
             
-            showAlert(title: "设置成功", message: "Google Cloud Project ID 已成功设置为 \(trimmedProjectId)")
+            showAlert(title: String(localized: "设置成功"), message: String(format: String(localized: "Google Cloud Project ID 已成功设置为 %@"), trimmedProjectId))
             isApplying = false
             return true
         } else {
-            showAlert(title: "设置失败", message: lastError ?? "设置项目ID失败")
+            showAlert(title: String(localized: "设置失败"), message: lastError ?? String(localized: "设置项目ID失败"))
             isApplying = false
             return false
         }

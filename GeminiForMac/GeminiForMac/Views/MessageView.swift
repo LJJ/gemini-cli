@@ -26,7 +26,7 @@ struct MessageView: View {
             // 消息内容
             VStack(alignment: .leading, spacing: 4) {
                 // 发送者名称
-                Text(message.isUser ? "你" : "Gemini")
+                Text(message.isUser ? String(localized: "你") : String(localized: "Gemini"))
                     .font(.caption)
                     .foregroundColor(.secondary)
                 
@@ -72,12 +72,12 @@ struct MessageView: View {
 #Preview {
     VStack {
         MessageView(message: ChatMessage(
-            content: "你好！我是 Gemini CLI 助手。",
+            content: String(localized: "你好！我是 Gemini CLI 助手。"),
 			type: .image
         ))
         
         MessageView(message: ChatMessage(
-            content: "请帮我写一个 Swift 函数",
+            content: String(localized: "请帮我写一个 Swift 函数"),
 			type: .user
         ))
     }

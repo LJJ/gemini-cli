@@ -32,7 +32,7 @@ class ServiceManager: ObservableObject {
             errorMessage = nil
         } catch {
             isServiceRunning = false
-            errorMessage = "检查服务状态失败: \(error.localizedDescription)"
+            errorMessage = String(format: String(localized: "检查服务状态失败: %@"), error.localizedDescription)
         }
     }
     
@@ -58,7 +58,7 @@ class ServiceManager: ObservableObject {
             await checkServiceStatus()
             return isServiceRunning
         } catch {
-            errorMessage = "重启服务失败: \(error.localizedDescription)"
+            errorMessage = String(format: String(localized: "重启服务失败: %@"), error.localizedDescription)
             return false
         }
     }

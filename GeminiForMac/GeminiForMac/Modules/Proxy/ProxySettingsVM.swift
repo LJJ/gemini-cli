@@ -74,8 +74,8 @@ class ProxySettingsVM: ObservableObject {
         
         let success: Bool
         if isEnabled {
-            guard let portNumber = Int(port), !host.isEmpty else {
-                showAlert(title: "输入错误", message: "请输入有效的主机地址和端口号")
+            guard let portNumber = Int(port), !host.isEmpty else  {
+                showAlert(title: String(localized: "输入错误"), message: String(localized: "请输入有效的主机地址和端口号"))
                 isLoading = false
                 return false
             }
@@ -85,7 +85,7 @@ class ProxySettingsVM: ObservableObject {
         }
         
         if !success {
-            showAlert(title: "保存失败", message: lastError ?? "未知错误")
+            showAlert(title: String(localized: "保存失败"), message: lastError ?? String(localized: "未知错误"))
         }
         
         isLoading = false

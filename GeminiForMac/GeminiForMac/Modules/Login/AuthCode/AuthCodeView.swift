@@ -22,7 +22,7 @@ struct AuthCodeView: View {
                 .multilineTextAlignment(.center)
                 .padding(.horizontal)
 
-            TextField("请输入授权码", text: $vm.inputModel.code)
+            TextField(String(localized: "请输入授权码"), text: $vm.inputModel.code)
                 .textFieldStyle(.roundedBorder)
                 .frame(maxWidth: 300)
                 .disabled(vm.isSubmitting)

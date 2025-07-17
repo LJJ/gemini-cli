@@ -24,7 +24,7 @@ struct ProjectConfigurationView: View {
                     .foregroundColor(.orange)
                     .font(.title2)
                 
-                Text("项目配置设置")
+                Text(String(localized: "项目配置设置"))
                     .font(.headline)
                     .fontWeight(.semibold)
                 
@@ -44,7 +44,7 @@ struct ProjectConfigurationView: View {
             
             // 错误消息显示
             VStack(alignment: .leading, spacing: 12) {
-                Text("配置问题")
+                Text(String(localized: "配置问题"))
                     .font(.subheadline)
                     .fontWeight(.medium)
                     .foregroundColor(.secondary)
@@ -62,15 +62,15 @@ struct ProjectConfigurationView: View {
             
             // 项目ID输入
             VStack(alignment: .leading, spacing: 8) {
-                Text("设置 Google Cloud Project ID")
+                Text(String(localized: "设置 Google Cloud Project ID"))
                     .font(.subheadline)
                     .fontWeight(.medium)
                 
-                TextField("输入你的 Google Cloud Project ID", text: $viewModel.projectId)
+                TextField(String(localized: "输入你的 Google Cloud Project ID"), text: $viewModel.projectId)
                     .textFieldStyle(.roundedBorder)
                     .font(.system(.body, design: .monospaced))
                 
-                Text("项目ID可以在 Google Cloud Console 中找到")
+                Text(String(localized: "项目ID可以在 Google Cloud Console 中找到"))
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
@@ -83,7 +83,7 @@ struct ProjectConfigurationView: View {
                     HStack {
                         Image(systemName: viewModel.showInstructions ? "chevron.down" : "chevron.right")
                             .font(.caption)
-                        Text("查看详细设置说明")
+                        Text(String(localized: "查看详细设置说明"))
                             .font(.subheadline)
                         Spacer()
                     }
@@ -93,19 +93,19 @@ struct ProjectConfigurationView: View {
                 
                 if viewModel.showInstructions {
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("设置步骤：")
+                        Text(String(localized: "设置步骤："))
                             .font(.caption)
                             .fontWeight(.medium)
                         
-                        Text("1. 打开系统设置 → 环境变量")
+                        Text(String(localized: "1. 打开系统设置 → 环境变量"))
                             .font(.caption)
                             .foregroundColor(.secondary)
                         
-                        Text("2. 添加环境变量：GOOGLE_CLOUD_PROJECT")
+                        Text(String(localized: "2. 添加环境变量：GOOGLE_CLOUD_PROJECT"))
                             .font(.caption)
                             .foregroundColor(.secondary)
                         
-                        Text("3. 重启应用程序")
+                        Text(String(localized: "3. 重启应用程序"))
                             .font(.caption)
                             .foregroundColor(.secondary)
                         
@@ -119,7 +119,7 @@ struct ProjectConfigurationView: View {
                                 HStack {
                                     Image(systemName: "link")
                                         .font(.caption)
-                                    Text("查看完整文档")
+                                    Text(String(localized: "查看完整文档"))
                                         .font(.caption)
                                 }
                                 .foregroundColor(.blue)
@@ -140,19 +140,19 @@ struct ProjectConfigurationView: View {
                 }) {
                     HStack {
                         Image(systemName: "gear")
-                        Text("打开系统设置")
+                        Text(String(localized: "打开系统设置"))
                     }
                 }
                 .buttonStyle(.bordered)
                 
                 Spacer()
                 
-                Button("取消") {
+                Button(String(localized: "取消")) {
                     isPresented = false
                 }
                 .buttonStyle(.bordered)
                 
-                Button("应用设置") {
+                Button(String(localized: "应用设置")) {
                     Task {
                         let success = await viewModel.applyProjectConfiguration()
                         if success {
@@ -169,7 +169,7 @@ struct ProjectConfigurationView: View {
                 HStack {
                     ProgressView()
                         .scaleEffect(0.8)
-                    Text("正在应用设置...")
+                    Text(String(localized: "正在应用设置..."))
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
@@ -184,7 +184,7 @@ struct ProjectConfigurationView: View {
             }
         }
         .alert(viewModel.alertTitle, isPresented: $viewModel.showAlert) {
-            Button("确定", role: .cancel) { }
+            Button(String(localized: "确定"), role: .cancel) { }
         } message: {
             Text(viewModel.alertMessage)
         }
