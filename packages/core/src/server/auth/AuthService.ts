@@ -14,6 +14,8 @@ import { DEFAULT_GEMINI_FLASH_MODEL } from '../../config/models.js';
 import { Config, ConfigParameters } from '../../config/config.js';
 import { ErrorCode, createError } from '../types/error-codes.js';
 import { ConfigurableService, ServiceStatus, ServiceStatusInfo } from '../types/service-interfaces.js';
+import { configFactory } from '../core/ConfigFactory.js';
+import { ProjectService } from '../project/ProjectService.js';
 
 /**
  * 认证服务 - 主要协调器
@@ -423,7 +425,7 @@ export class AuthService implements ConfigurableService {
 
   public async handleLogout(req: express.Request, res: express.Response) {
     try {
-      console.log('用户登出，清除所有认证凭据');
+      console.log('用户登出，清除所有认证凭据和聊天服务');
       
       // 清除内存中的认证信息
       this.clearAuthState();
@@ -434,10 +436,40 @@ export class AuthService implements ConfigurableService {
       // 清除 OAuth 凭据（类似 clear-auth.sh 脚本）
       await this.clearAllAuthCredentials();
       
-      res.json(ResponseFactory.authConfig('登出成功，所有认证凭据已清除'));
+      // 清除聊天相关服务状态
+      await this.cleanupChatServices();
+      
+      res.json(ResponseFactory.authConfig('登出成功，所有认证凭据和聊天服务已清除'));
     } catch (error) {
       console.error('Error in handleLogout:', error);
       res.status(500).json(ResponseFactory.internalError(error instanceof Error ? error.message : '登出失败'));
+    }
+  }
+
+  /**
+   * 清除聊天相关服务状态
+   * 确保登出后下次登录时的用户状态一致
+   */
+  private async cleanupChatServices() {
+    try {
+      console.log('开始清除聊天服务状态...');
+      
+      // 1. 清除 ConfigFactory 及其管理的所有工作区容器
+      await configFactory.cleanup();
+      console.log('ConfigFactory 清理完成');
+      
+      // 2. 清除项目服务缓存的配置
+      ProjectService.clearConfig();
+      console.log('ProjectService 配置清理完成');
+      
+      // 3. 禁用配置缓存，确保下次登录时重新初始化
+      configFactory.setConfigCacheEnabled(false);
+      console.log('配置缓存已禁用');
+      
+      console.log('聊天服务状态清理完成');
+    } catch (error) {
+      console.error('清除聊天服务状态时出错:', error);
+      // 不抛出错误，避免影响登出流程
     }
   }
 
