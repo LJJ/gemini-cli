@@ -528,7 +528,7 @@ Launch Agent: ~/Library/LaunchAgents/com.gemini.cli.server.plist
 === 安装步骤 ===
 1. 双击 PKG 文件进行安装
 2. 启动 GeminiForMac 应用
-3. 手动启动服务: launchctl load ~/Library/LaunchAgents/com.gemini.cli.server.plist
+3. 服务器会自动启动 (由 postinstall 脚本处理)
 4. 验证服务: curl http://localhost:18080
 EOF
 
@@ -541,4 +541,4 @@ log_info ""
 log_info "安装方式："
 log_info "1. 双击 PKG 文件进行安装"
 log_info "2. 启动 GeminiForMac 应用"
-log_info "3. 手动启动服务: launchctl load ~/Library/LaunchAgents/com.gemini.cli.server.plist"
+log_info "3. 服务器会自动启动 (由 postinstall 脚本处理)"
