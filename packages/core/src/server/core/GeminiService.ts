@@ -12,9 +12,10 @@ import { ToolOrchestrator } from '../tools/ToolOrchestrator.js';
 import { ChatHandler } from '../chat/ChatHandler.js';
 import { ToolConfirmationRequest } from '../types/api-types.js';
 import { ToolConfirmationOutcome } from '../../tools/tools.js';
-import { ErrorCode, ERROR_DESCRIPTIONS } from '../types/error-codes.js';
+import { ErrorCode } from '../types/error-codes.js';
 import { configFactory } from './ConfigFactory.js';
 import { DEFAULT_GEMINI_MODEL, DEFAULT_GEMINI_FLASH_MODEL } from '../../config/models.js';
+import { WorkspaceService } from '../workspace/WorkspaceService.js';
 
 // 支持的模型列表
 const SUPPORTED_MODELS = [
@@ -42,6 +43,7 @@ export class GeminiService {
   private streamingEventService: StreamingEventService;
   private toolOrchestrator: ToolOrchestrator;
   private chatHandler: ChatHandler;
+  private workspaceService: WorkspaceService;
 
   constructor() {
     // 使用ConfigFactory管理依赖，简化初始化
@@ -53,6 +55,28 @@ export class GeminiService {
       this.streamingEventService,
       this.toolOrchestrator
     );
+    this.workspaceService = new WorkspaceService(this.clientManager);
+  }
+
+  /**
+   * 工作区初始化接口 - 委托给WorkspaceService
+   */
+  public async handleWorkspaceInitialization(req: express.Request, res: express.Response) {
+    return this.workspaceService.handleWorkspaceInitialization(req, res);
+  }
+
+  /**
+   * 工作区状态查询接口 - 委托给WorkspaceService
+   */
+  public async handleWorkspaceStatus(req: express.Request, res: express.Response) {
+    return this.workspaceService.handleWorkspaceStatus(req, res);
+  }
+
+  /**
+   * 工作区切换接口 - 委托给WorkspaceService
+   */
+  public async handleWorkspaceSwitch(req: express.Request, res: express.Response) {
+    return this.workspaceService.handleWorkspaceSwitch(req, res);
   }
 
   public async handleChat(req: express.Request, res: express.Response) {
@@ -68,46 +92,41 @@ export class GeminiService {
         return;
       }
 
-      // workspacePath 现在是可选的，如果没有提供，使用预初始化的默认工作区
-      let effectiveWorkspacePath = workspacePath;
-      
-      if (!effectiveWorkspacePath) {
-        // 尝试使用预初始化的默认工作区
-        const { serverBootstrap } = await import('./ServerBootstrap.js');
-        effectiveWorkspacePath = serverBootstrap.getDefaultWorkspace();
-        
-        if (!effectiveWorkspacePath) {
-          // 如果仍然没有工作区，使用当前目录
-          effectiveWorkspacePath = process.cwd();
-          console.log('GeminiService: 使用当前目录作为工作区:', effectiveWorkspacePath);
-        } else {
-          console.log('GeminiService: 使用预初始化的默认工作区:', effectiveWorkspacePath);
+      // 如果提供了工作区路径，确保客户端已初始化
+      if (workspacePath) {
+        try {
+          await this.workspaceService.ensureWorkspaceInitialized(workspacePath);
+        } catch (clientError) {
+          // 设置流式响应头
+          this.streamingEventService.setupStreamingResponse(res);
+          
+          // 检查是否是 GOOGLE_CLOUD_PROJECT 错误
+          const errorCode = clientError instanceof Error && (clientError as any).code ? (clientError as any).code : ErrorCode.INTERNAL_ERROR;
+          const errorMessage = clientError instanceof Error ? clientError.message : 'Unknown error';
+          
+          this.streamingEventService.sendErrorEvent(res, errorMessage, errorCode);
+          this.streamingEventService.sendCompleteEvent(res, false, 'Failed to initialize workspace');
+          return;
+        }
+      } else {
+        // 如果没有提供工作区路径，检查是否已有活跃客户端
+        const workspaceStatus = this.workspaceService.getWorkspaceStatus();
+        if (!workspaceStatus.hasActiveClient) {
+          // 设置流式响应头
+          this.streamingEventService.setupStreamingResponse(res);
+          this.streamingEventService.sendErrorEvent(res, 'No active workspace. Please initialize workspace first.', ErrorCode.CLIENT_NOT_INITIALIZED);
+          this.streamingEventService.sendCompleteEvent(res, false, '工作区未初始化');
+          return;
         }
       }
 
+      const workspaceStatus = this.workspaceService.getWorkspaceStatus();
       console.log('Processing chat request', { 
         message: message.substring(0, 100),
         filePaths: filePaths.length,
-        requestedWorkspace: workspacePath || '(默认)',
-        effectiveWorkspace: effectiveWorkspacePath,
-        currentWorkspace: this.clientManager.getCurrentWorkspace()
+        requestedWorkspace: workspacePath || '(当前工作区)',
+        currentWorkspace: workspaceStatus.currentWorkspace
       });
-
-      // 使用ClientManager获取或创建客户端（会自动处理ConfigFactory）
-      try {
-        await this.clientManager.getOrCreateClient(effectiveWorkspacePath);
-      } catch (clientError) {
-        // 设置流式响应头
-        this.streamingEventService.setupStreamingResponse(res);
-        
-        // 检查是否是 GOOGLE_CLOUD_PROJECT 错误
-        const errorCode = clientError instanceof Error && (clientError as any).code ? (clientError as any).code : ErrorCode.INTERNAL_ERROR;
-        const errorMessage = clientError instanceof Error ? clientError.message : 'Unknown error';
-        
-        this.streamingEventService.sendErrorEvent(res, errorMessage, errorCode);
-        this.streamingEventService.sendCompleteEvent(res, false, '客户端初始化失败');
-        return;
-      }
 
       // 委托给聊天处理器
       await this.chatHandler.handleStreamingChat(message, filePaths, res);
@@ -120,9 +139,7 @@ export class GeminiService {
       
       // 发送错误事件而不是标准HTTP响应
       const errorCode = error instanceof Error && (error as any).code ? (error as any).code : ErrorCode.INTERNAL_ERROR;
-      const errorMessage = error instanceof Error && (error as any).code && Object.values(ErrorCode).includes(errorCode) 
-        ? ERROR_DESCRIPTIONS[errorCode as ErrorCode] 
-        : (error instanceof Error ? error.message : 'Unknown error');
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       
       this.streamingEventService.sendErrorEvent(
         res, 

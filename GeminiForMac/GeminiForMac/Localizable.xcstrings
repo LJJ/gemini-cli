@@ -65,6 +65,9 @@
         }
       }
     },
+    "🌐 无法连接到Google服务，请在代理设置中配置网络代理" : {
+
+    },
     "💭 **%@**\n%@" : {
       "localizations" : {
         "en" : {
@@ -741,6 +744,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "启用代理"
+          }
+        }
+      }
+    },
+    "在 Finder 中显示" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show in Finder"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在 Finder 中显示"
           }
         }
       }
@@ -1783,22 +1802,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "项目配置设置"
-          }
-        }
-      }
-    },
-    "在 Finder 中显示" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Show in Finder"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "在 Finder 中显示"
           }
         }
       }

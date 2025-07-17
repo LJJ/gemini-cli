@@ -5,7 +5,7 @@
  */
 
 import { BaseResponse, ErrorResponse } from '../types/api-types.js';
-import { ErrorCode, ERROR_TO_HTTP_STATUS, ERROR_DESCRIPTIONS } from '../types/error-codes.js';
+import { ErrorCode, ERROR_TO_HTTP_STATUS } from '../types/error-codes.js';
 
 /**
  * 响应工厂类 - 确保所有API响应都遵循标准格式
@@ -40,7 +40,7 @@ export class ResponseFactory {
   static errorWithCode(errorCode: ErrorCode, customMessage?: string): { code: number; message: string; timestamp: string } {
     return {
       code: ERROR_TO_HTTP_STATUS[errorCode],
-      message: customMessage || ERROR_DESCRIPTIONS[errorCode],
+      message: customMessage || `Error: ${errorCode}`,
       timestamp: new Date().toISOString()
     };
   }

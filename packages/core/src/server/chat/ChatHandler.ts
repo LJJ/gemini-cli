@@ -215,10 +215,18 @@ export class ChatHandler {
             console.error('❌ Gemini API 错误:', event.value.error?.message || 'Unknown error');
             console.error('序列化错误对象失败:', stringifyError instanceof Error ? stringifyError.message : 'Unknown stringify error');
           }
+          
+          // 检测配额超限错误
+          let errorCode = ErrorCode.GEMINI_ERROR;
+          if (event.value.error?.status === 429 || 
+              (event.value.error?.message && event.value.error.message.includes('Quota exceeded'))) {
+            errorCode = ErrorCode.QUOTA_EXCEEDED;
+          }
+          
           this.streamingEventService.sendErrorEvent(
             res,
             event.value.error.message,
-            ErrorCode.GEMINI_ERROR,
+            errorCode,
             event.value.error.status?.toString()
           );
           break;
