@@ -214,14 +214,6 @@ struct ErrorEventData: Codable {
     let code: ErrorCode?
     let details: String?
     
-    /// 获取用户友好的错误消息
-    var userFriendlyMessage: String {
-        if let errorCode = code {
-            return errorCode.userFriendlyMessage
-        }
-        return message
-    }
-    
     /// 是否需要用户重新认证
     var requiresReauthentication: Bool {
         return code?.requiresReauthentication ?? false
@@ -245,6 +237,11 @@ struct ErrorEventData: Codable {
     /// 是否需要用户配置项目设置
     var requiresProjectConfiguration: Bool {
         return code?.requiresProjectConfiguration ?? false
+    }
+    
+    /// 是否需要用户配置代理设置
+    var requiresProxyConfiguration: Bool {
+        return code?.requiresProxyConfiguration ?? false
     }
 }
 
