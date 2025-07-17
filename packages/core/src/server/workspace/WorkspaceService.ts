@@ -173,6 +173,7 @@ export class WorkspaceService {
     
     // 如果当前工作区已经是目标工作区，直接返回
     if (this.clientManager.getCurrentWorkspace() === effectiveWorkspacePath) {
+      await this.clientManager.getOrCreateClient(effectiveWorkspacePath);
       return effectiveWorkspacePath;
     }
     
