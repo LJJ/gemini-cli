@@ -11,7 +11,8 @@ import { createToolRegistry } from '../../config/config.js';
 import { DEFAULT_GEMINI_FLASH_MODEL } from '../../config/models.js';
 import { ErrorCode, createError } from '../../server/types/error-codes.js';
 import { ConfigCache } from './ConfigCache.js';
-import { ProjectService } from '../project/ProjectService.js';
+import { NetworkChecker } from '../utils/NetworkChecker.js';
+
 
 /**
  * 工作区相关的服务容器 - 只包含与workspace相关的服务
@@ -149,16 +150,26 @@ export class ConfigFactory {
     const container = this.getCurrentWorkspaceContainer();
     const authService = this.getOrCreateAuthService();
     
-    // 检查认证状态
+    // 第一步：检查网络连接 - 无法连接Google服务直接终止流程
+    const networkChecker = NetworkChecker.getInstance();
+    const hasGoogleConnectivity = await networkChecker.checkGoogleConnectivity();
+    
+    if (!hasGoogleConnectivity) {
+      const errorMessage = await networkChecker.generateConnectivityErrorMessage();
+      throw createError(ErrorCode.NETWORK_CONNECTIVITY_FAILED, errorMessage);
+    }
+    
+    // 第二步：检查认证状态 - 未认证直接终止流程
     if (!authService.isUserAuthenticated()) {
       throw createError(ErrorCode.AUTH_REQUIRED, '用户未认证，无法初始化GeminiClient');
     }
 
-    // 创建GeminiClient
+    // 第三步：创建GeminiClient实例
     container.geminiClient = new GeminiClient(container.config);
 
-    // 使用智能降级逻辑初始化
-    await this.initializeWithFallback(container, authService, disableCodeAssist);
+    // 第四步：直接初始化，不使用降级逻辑
+    const contentGeneratorConfig = await authService.getContentGeneratorConfig(disableCodeAssist);
+    await container.geminiClient.initialize(contentGeneratorConfig);
 
     console.log('ConfigFactory: GeminiClient初始化完成');
     return container.geminiClient;
@@ -309,53 +320,7 @@ export class ConfigFactory {
     return currentTargetDir !== params.targetDir;
   }
 
-  /**
-   * 使用降级逻辑初始化GeminiClient
-   */
-  private async initializeWithFallback(
-    container: WorkspaceServiceContainer, 
-    authService: AuthService, 
-    disableCodeAssist: boolean
-  ): Promise<void> {
-    const geminiClient = container.geminiClient!;
-    
-    // 确保使用 ProjectService 缓存的项目ID
-    const cachedProjectId = ProjectService.getCurrentProjectId();
-    if (cachedProjectId) {
-      console.log('ConfigFactory: 使用缓存的项目ID:', cachedProjectId);
-      process.env.GOOGLE_CLOUD_PROJECT = cachedProjectId;
-    }
-    
-    try {
-      // 尝试初始化 CodeAssist
-      console.log('ConfigFactory: 尝试初始化 CodeAssist...');
-      const contentGeneratorConfig = await authService.getContentGeneratorConfig(disableCodeAssist);
-      
-      // 注意：工具注册表已经在createAndInitializeConfig中初始化了
-      await geminiClient.initialize(contentGeneratorConfig);
-      console.log('ConfigFactory: CodeAssist 初始化成功');
-    } catch (codeAssistError) {
-      console.warn('ConfigFactory: CodeAssist 初始化失败，降级到普通 Gemini API:', codeAssistError);
-      
-      // 检查是否是 GOOGLE_CLOUD_PROJECT 错误
-      if (codeAssistError instanceof Error && 
-          (codeAssistError.message.includes('GOOGLE_CLOUD_PROJECT') || 
-           codeAssistError.constructor.name === 'ProjectIdRequiredError')) {
-        // 传递原始错误信息，保留完整的错误描述和链接
-        throw createError(ErrorCode.GOOGLE_CLOUD_PROJECT_REQUIRED, codeAssistError.message);
-      }
-      
-      try {
-        console.log('ConfigFactory: 尝试使用普通 Gemini API...');
-        const fallbackConfig = await authService.getContentGeneratorConfig(true);
-        await geminiClient.initialize(fallbackConfig);
-        console.log('ConfigFactory: 普通 Gemini API 初始化成功');
-      } catch (fallbackError) {
-        console.error('ConfigFactory: 普通 Gemini API 也初始化失败:', fallbackError);
-        throw createError(ErrorCode.CLIENT_INIT_FAILED, '无法初始化GeminiClient');
-      }
-    }
-  }
+
 }
 
 // 单例实例

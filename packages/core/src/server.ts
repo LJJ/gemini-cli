@@ -14,6 +14,8 @@ import { serverBootstrap } from './server/core/ServerBootstrap.js';
 import { ProxyConfigManager } from './server/utils/ProxyConfigManager.js';
 import { ResponseFactory } from './server/utils/responseFactory.js';
 import { ProjectService } from './server/project/ProjectService.js';
+import { WorkspaceService } from './server/workspace/WorkspaceService.js';
+import { NetworkChecker } from './server/utils/NetworkChecker.js';
 
 /**
  * API服务器 - 重构后使用ConfigFactory管理依赖（优化版）
@@ -29,6 +31,7 @@ export class APIServer {
   private geminiService: GeminiService;
   private fileService: FileService;
   private commandService: CommandService;
+  private workspaceService: WorkspaceService;
 
   constructor(port: number = 18080) {
     console.log('APIServer: 初始化服务器');
@@ -39,6 +42,10 @@ export class APIServer {
     
     // GeminiService不需要直接传入AuthService，它会从ConfigFactory获取
     this.geminiService = new GeminiService();
+    
+    // WorkspaceService 可以独立使用，也可以通过 GeminiService 调用
+    // 这里我们从 GeminiService 获取，保持一致性
+    this.workspaceService = (this.geminiService as any).workspaceService;
     
     this.setupRoutes();
     this.serverConfig.addErrorHandler();
@@ -175,6 +182,19 @@ export class APIServer {
       }
     });
     
+    // 工作区管理接口
+    app.post('/workspace/initialize', (req, res) => {
+      this.workspaceService.handleWorkspaceInitialization(req, res);
+    });
+    
+    app.get('/workspace/status', (req, res) => {
+      this.workspaceService.handleWorkspaceStatus(req, res);
+    });
+    
+    app.post('/workspace/switch', (req, res) => {
+      this.workspaceService.handleWorkspaceSwitch(req, res);
+    });
+    
     // 聊天功能 - 连接到真实的 Gemini 服务
     app.post('/chat', (req, res) => {
       this.geminiService.handleChat(req, res);
@@ -276,6 +296,40 @@ export class APIServer {
     app.post('/project/config', (req, res) => {
       ProjectService.handleSetConfig(req, res);
     });
+
+    // 网络诊断API
+    app.get('/network/diagnostic', async (req, res) => {
+      try {
+        const networkChecker = NetworkChecker.getInstance();
+        const diagnostic = await networkChecker.getDiagnosticInfo();
+        res.json(ResponseFactory.success(diagnostic, '网络诊断完成'));
+      } catch (error) {
+        res.status(500).json(ResponseFactory.internalError(
+          error instanceof Error ? error.message : '网络诊断失败'
+        ));
+      }
+    });
+    
+    app.post('/network/test-connectivity', async (req, res) => {
+      try {
+        const networkChecker = NetworkChecker.getInstance();
+        const hasConnectivity = await networkChecker.checkGoogleConnectivity();
+        
+        if (hasConnectivity) {
+          res.json(ResponseFactory.success(
+            { connectivity: true }, 
+            '网络连接正常，可以访问Google服务'
+          ));
+        } else {
+          const errorMessage = await networkChecker.generateConnectivityErrorMessage();
+          res.status(503).json(ResponseFactory.error(errorMessage, 503));
+        }
+      } catch (error) {
+        res.status(500).json(ResponseFactory.internalError(
+          error instanceof Error ? error.message : '网络连接测试失败'
+        ));
+      }
+    });
   }
 
   public async start() {
@@ -289,10 +343,15 @@ export class APIServer {
       console.log(`🚀 Gemini CLI API Server is running on port ${port}`);
       console.log(`📡 Health check: http://localhost:${port}/status`);
       console.log(`🔐 Auth endpoints: http://localhost:${port}/auth/*`);
+      console.log(`🏗️ Workspace management:`);
+      console.log(`   - Initialize: http://localhost:${port}/workspace/initialize`);
+      console.log(`   - Status: http://localhost:${port}/workspace/status`);
+      console.log(`   - Switch: http://localhost:${port}/workspace/switch`);
       console.log(`💬 Chat endpoint: http://localhost:${port}/chat`);
       console.log(`📂 File operations: http://localhost:${port}/list-directory`);
       console.log(`⚡ Command execution: http://localhost:${port}/execute-command`);
       console.log(`🤖 Model management: http://localhost:${port}/model/status | http://localhost:${port}/model/switch`);
+      console.log(`🌐 Network diagnostics: http://localhost:${port}/network/diagnostic | http://localhost:${port}/network/test-connectivity`);
       console.log(`🏭 ConfigFactory: ${configFactory.isFactoryInitialized() ? 'initialized' : 'uninitialized'}`);
       console.log(`🔧 Bootstrap: ${serverBootstrap.isInitialized() ? 'completed' : 'failed'}`);
       

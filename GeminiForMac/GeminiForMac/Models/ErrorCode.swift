@@ -22,6 +22,9 @@ enum ErrorCode: String, Codable, CaseIterable {
     case oauthInitFailed = "OAUTH_INIT_FAILED"
     case googleCloudProjectRequired = "GOOGLE_CLOUD_PROJECT_REQUIRED"
     
+    // 网络连接错误
+    case networkConnectivityFailed = "NETWORK_CONNECTIVITY_FAILED"
+    
     // 客户端初始化错误
     case clientNotInitialized = "CLIENT_NOT_INITIALIZED"
     case clientInitFailed = "CLIENT_INIT_FAILED"
@@ -33,6 +36,7 @@ enum ErrorCode: String, Codable, CaseIterable {
     
     // Gemini API 错误
     case geminiError = "GEMINI_ERROR"
+    case quotaExceeded = "QUOTA_EXCEEDED"
     
     // 工具相关错误
     case toolSchedulerNotInitialized = "TOOL_SCHEDULER_NOT_INITIALIZED"
@@ -45,53 +49,7 @@ enum ErrorCode: String, Codable, CaseIterable {
     case unknownError = "UNKNOWN_ERROR"
 }
 
-// MARK: - 错误代码描述映射
-extension ErrorCode {
-    var description: String {
-        switch self {
-        case .validationError:
-            return "请求参数验证失败"
-        case .authNotSet:
-            return "未设置认证类型"
-        case .authRequired:
-            return "用户未认证，请先完成认证设置"
-        case .authConfigFailed:
-            return "认证配置失败"
-        case .oauthInitFailed:
-            return "OAuth 客户端初始化失败"
-        case .googleCloudProjectRequired:
-            return "Google Cloud Project 配置错误"
-        case .clientNotInitialized:
-            return "Gemini 客户端未初始化"
-        case .clientInitFailed:
-            return "Gemini 客户端初始化失败"
-        case .streamError:
-            return "流式处理错误"
-        case .turnNotInitialized:
-            return "Turn 或 AbortController 未初始化"
-        case .abortControllerNotInitialized:
-            return "AbortController 未初始化"
-        case .geminiError:
-            return "Gemini API 错误"
-        case .toolSchedulerNotInitialized:
-            return "工具调度器未初始化"
-        case .toolCallNotFound:
-            return "工具调用未找到或不在等待确认状态"
-        case .toolInvalidOutcome:
-            return "无效的工具调用结果"
-        case .internalError:
-            return "服务器内部错误"
-        case .networkError:
-            return "网络连接错误"
-        case .unknownError:
-            return "未知错误"
-        }
-    }
-    
-    var localizedKey:LocalizedStringKey {
-        return LocalizedStringKey(description)
-    }
-}
+
 
 // MARK: - 错误处理扩展
 extension ErrorCode {
@@ -109,6 +67,16 @@ extension ErrorCode {
     var requiresNetworkCheck: Bool {
         switch self {
         case .networkError, .clientInitFailed, .oauthInitFailed:
+            return true
+        default:
+            return false
+        }
+    }
+    
+    /// 是否需要用户配置代理设置
+    var requiresProxyConfiguration: Bool {
+        switch self {
+        case .networkConnectivityFailed:
             return true
         default:
             return false
@@ -145,45 +113,5 @@ extension ErrorCode {
         }
     }
     
-    /// 获取用户友好的错误提示
-    var userFriendlyMessage: String {
-        switch self {
-        case .authRequired:
-            return "请先完成认证设置"
-        case .authNotSet:
-            return "请设置认证方式"
-        case .authConfigFailed:
-            return "认证配置失败，请检查设置"
-        case .oauthInitFailed:
-            return "Google 登录失败，请检查网络连接或尝试使用 API Key"
-        case .googleCloudProjectRequired:
-            return "Google Cloud Project 配置错误，请检查相关设置"
-        case .clientNotInitialized:
-            return "客户端未初始化，请重试"
-        case .clientInitFailed:
-            return "客户端初始化失败，请检查网络连接后重试"
-        case .streamError:
-            return "处理请求时发生错误，请重试"
-        case .turnNotInitialized:
-            return "对话状态异常，请重新开始对话"
-        case .abortControllerNotInitialized:
-            return "操作被中断，请重试"
-        case .geminiError:
-            return "AI 服务暂时不可用，请稍后重试"
-        case .toolSchedulerNotInitialized:
-            return "工具服务未就绪，请重试"
-        case .toolCallNotFound:
-            return "工具调用状态异常，请重试"
-        case .toolInvalidOutcome:
-            return "工具操作参数无效，请检查后重试"
-        case .internalError:
-            return "服务器内部错误，请稍后重试"
-        case .networkError:
-            return "网络连接错误，请检查网络后重试"
-        case .validationError:
-            return "输入参数有误，请检查后重试"
-        case .unknownError:
-            return "发生未知错误，请重试"
-        }
-    }
+
 } 

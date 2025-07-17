@@ -322,8 +322,8 @@ class ChatService: ObservableObject {
         // 记录错误日志
         print("收到错误事件: \(errorData.code) - \(errorData.message)")
         
-        // 优先显示服务器传递的详细错误消息，如果没有则使用本地化的用户友好消息
-        let userMessage = errorData.message.isEmpty ? errorData.userFriendlyMessage : errorData.message
+        // 直接使用服务器传递的错误消息
+        let userMessage = errorData.message.isEmpty ? "Unknown error" : errorData.message
         self.errorMessage = userMessage
         
         // 根据错误类型执行相应的处理逻辑
@@ -333,6 +333,9 @@ class ChatService: ObservableObject {
         } else if errorData.requiresProjectConfiguration {
             // 触发项目配置弹窗
             handleProjectConfigurationError(errorData)
+        } else if errorData.requiresProxyConfiguration {
+            // 触发代理配置弹窗
+            handleProxyConfigurationError(errorData)
         } else if errorData.requiresNetworkCheck {
             // 提示用户检查网络
             handleNetworkError()
@@ -377,6 +380,21 @@ class ChatService: ObservableObject {
             type: .text
         )
         messages.append(configMessage)
+    }
+    
+    /// 处理需要代理配置的错误
+    private func handleProxyConfigurationError(_ errorData: ErrorEventData) {
+        print("需要配置网络代理")
+        
+        // 使用 ProxySettingsManager 打开代理设置界面
+        ProxySettingsManager.shared.openProxySettings()
+        
+        // 添加一个系统消息提示用户
+        let proxyMessage = ChatMessage(
+            content: String(localized: "🌐 无法连接到Google服务，请在代理设置中配置网络代理"),
+            type: .text
+        )
+        messages.append(proxyMessage)
     }
     
     /// 处理网络相关错误

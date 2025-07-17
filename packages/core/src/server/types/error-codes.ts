@@ -16,11 +16,12 @@ export enum ErrorCode {
   AUTH_REQUIRED = 'AUTH_REQUIRED',
   AUTH_CONFIG_FAILED = 'AUTH_CONFIG_FAILED',
   OAUTH_INIT_FAILED = 'OAUTH_INIT_FAILED',
-  GOOGLE_CLOUD_PROJECT_REQUIRED = 'GOOGLE_CLOUD_PROJECT_REQUIRED',
+  
+  // 网络连接错误
+  NETWORK_CONNECTIVITY_FAILED = 'NETWORK_CONNECTIVITY_FAILED',
   
   // 客户端初始化错误
   CLIENT_NOT_INITIALIZED = 'CLIENT_NOT_INITIALIZED',
-  CLIENT_INIT_FAILED = 'CLIENT_INIT_FAILED',
   
   // 流式处理错误
   STREAM_ERROR = 'STREAM_ERROR',
@@ -29,6 +30,7 @@ export enum ErrorCode {
   
   // Gemini API 错误
   GEMINI_ERROR = 'GEMINI_ERROR',
+  QUOTA_EXCEEDED = 'QUOTA_EXCEEDED',
   
   // 工具相关错误
   TOOL_SCHEDULER_NOT_INITIALIZED = 'TOOL_SCHEDULER_NOT_INITIALIZED',
@@ -45,24 +47,24 @@ export enum ErrorCode {
  * 错误代码描述映射
  */
 export const ERROR_DESCRIPTIONS: Record<ErrorCode, string> = {
-  [ErrorCode.VALIDATION_ERROR]: '请求参数验证失败',
-  [ErrorCode.AUTH_NOT_SET]: '未设置认证类型',
-  [ErrorCode.AUTH_REQUIRED]: '用户未认证，请先完成认证设置',
-  [ErrorCode.AUTH_CONFIG_FAILED]: '认证配置失败',
-  [ErrorCode.OAUTH_INIT_FAILED]: 'OAuth 客户端初始化失败',
-  [ErrorCode.GOOGLE_CLOUD_PROJECT_REQUIRED]: 'Google Cloud Project 配置错误',
-  [ErrorCode.CLIENT_NOT_INITIALIZED]: 'Gemini 客户端未初始化',
-  [ErrorCode.CLIENT_INIT_FAILED]: 'Gemini 客户端初始化失败',
-  [ErrorCode.STREAM_ERROR]: '流式处理错误',
-  [ErrorCode.TURN_NOT_INITIALIZED]: 'Turn 或 AbortController 未初始化',
-  [ErrorCode.ABORT_CONTROLLER_NOT_INITIALIZED]: 'AbortController 未初始化',
-  [ErrorCode.GEMINI_ERROR]: 'Gemini API 错误',
-  [ErrorCode.TOOL_SCHEDULER_NOT_INITIALIZED]: '工具调度器未初始化',
-  [ErrorCode.TOOL_CALL_NOT_FOUND]: '工具调用未找到或不在等待确认状态',
-  [ErrorCode.TOOL_INVALID_OUTCOME]: '无效的工具调用结果',
-  [ErrorCode.INTERNAL_ERROR]: '服务器内部错误',
-  [ErrorCode.NETWORK_ERROR]: '网络连接错误',
-  [ErrorCode.UNKNOWN_ERROR]: '未知错误'
+  [ErrorCode.VALIDATION_ERROR]: 'Validation error',
+  [ErrorCode.AUTH_NOT_SET]: 'Authentication not set',
+  [ErrorCode.AUTH_REQUIRED]: 'Authentication required',
+  [ErrorCode.AUTH_CONFIG_FAILED]: 'Authentication configuration failed',
+  [ErrorCode.QUOTA_EXCEEDED]: 'API quota exceeded',
+  [ErrorCode.OAUTH_INIT_FAILED]: 'OAuth initialization failed',
+  [ErrorCode.NETWORK_CONNECTIVITY_FAILED]: 'Network connectivity to Google services failed',
+  [ErrorCode.CLIENT_NOT_INITIALIZED]: 'Gemini client not initialized',
+  [ErrorCode.STREAM_ERROR]: 'Stream processing error',
+  [ErrorCode.TURN_NOT_INITIALIZED]: 'Turn or AbortController not initialized',
+  [ErrorCode.ABORT_CONTROLLER_NOT_INITIALIZED]: 'AbortController not initialized',
+  [ErrorCode.GEMINI_ERROR]: 'Gemini API error',
+  [ErrorCode.TOOL_SCHEDULER_NOT_INITIALIZED]: 'Tool scheduler not initialized',
+  [ErrorCode.TOOL_CALL_NOT_FOUND]: 'Tool call not found or not in waiting confirmation status',
+  [ErrorCode.TOOL_INVALID_OUTCOME]: 'Invalid tool call outcome',
+  [ErrorCode.INTERNAL_ERROR]: 'Internal server error',
+  [ErrorCode.NETWORK_ERROR]: 'Network connection error',
+  [ErrorCode.UNKNOWN_ERROR]: 'Unknown error'
 };
 
 /**
@@ -74,13 +76,13 @@ export const ERROR_TO_HTTP_STATUS: Record<ErrorCode, number> = {
   [ErrorCode.AUTH_REQUIRED]: 401,
   [ErrorCode.AUTH_CONFIG_FAILED]: 500,
   [ErrorCode.OAUTH_INIT_FAILED]: 500,
-  [ErrorCode.GOOGLE_CLOUD_PROJECT_REQUIRED]: 400,
+  [ErrorCode.NETWORK_CONNECTIVITY_FAILED]: 503,
   [ErrorCode.CLIENT_NOT_INITIALIZED]: 400,
-  [ErrorCode.CLIENT_INIT_FAILED]: 500,
   [ErrorCode.STREAM_ERROR]: 500,
   [ErrorCode.TURN_NOT_INITIALIZED]: 500,
   [ErrorCode.ABORT_CONTROLLER_NOT_INITIALIZED]: 500,
   [ErrorCode.GEMINI_ERROR]: 500,
+  [ErrorCode.QUOTA_EXCEEDED]: 429,
   [ErrorCode.TOOL_SCHEDULER_NOT_INITIALIZED]: 500,
   [ErrorCode.TOOL_CALL_NOT_FOUND]: 404,
   [ErrorCode.TOOL_INVALID_OUTCOME]: 400,
@@ -91,20 +93,22 @@ export const ERROR_TO_HTTP_STATUS: Record<ErrorCode, number> = {
 
 /**
  * 创建带错误代码的错误对象
+ * 优先使用传入的自定义消息，如果没有则使用错误代码作为默认消息
  */
 export function createError(code: ErrorCode, customMessage?: string): Error {
-  const error = new Error(customMessage || ERROR_DESCRIPTIONS[code]);
+  const error = new Error(customMessage || `message: ${ERROR_DESCRIPTIONS[code]}`);
   (error as any).code = code;
   return error;
 }
 
 /**
  * 从错误代码创建标准化的错误响应
+ * 优先使用传入的自定义消息，如果没有则使用错误代码作为默认消息
  */
 export function createErrorResponse(errorCode: ErrorCode, customMessage?: string) {
   return {
     code: ERROR_TO_HTTP_STATUS[errorCode],
-    message: customMessage || ERROR_DESCRIPTIONS[errorCode],
+    message: customMessage || `Error: ${errorCode}`,
     timestamp: new Date().toISOString()
   };
 } 
