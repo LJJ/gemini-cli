@@ -90,19 +90,19 @@ class AuthDialogVM: ObservableObject {
             
         case .useGemini:
             if apiKey?.isEmpty != false {
-                return "请输入 Gemini API Key"
+                return String(localized: "请输入 Gemini API Key")
             }
             return nil
             
         case .useVertexAI:
             if apiKey?.isEmpty != false {
-                return "请输入 Google API Key"
+                return String(localized: "请输入 Google API Key")
             }
             if googleCloudProject?.isEmpty != false {
-                return "请输入 Google Cloud Project ID"
+                return String(localized: "请输入 Google Cloud Project ID")
             }
             if googleCloudLocation?.isEmpty != false {
-                return "请输入 Google Cloud Location"
+                return String(localized: "请输入 Google Cloud Location")
             }
             return nil
         }

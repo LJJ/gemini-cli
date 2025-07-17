@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import SwiftUICore
 
 // MARK: - 错误代码枚举
 // 与后端 API 规范完全一致
@@ -85,6 +86,10 @@ extension ErrorCode {
         case .unknownError:
             return "未知错误"
         }
+    }
+    
+    var localizedKey:LocalizedStringKey {
+        return LocalizedStringKey(description)
     }
 }
 

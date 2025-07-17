@@ -184,7 +184,7 @@ struct SearchBar: View {
                 .font(.caption)
                 .foregroundColor(.secondary)
             
-            TextField("搜索文件...", text: $searchText)
+            TextField(String(localized: "搜索文件..."), text: $searchText)
                 .textFieldStyle(.plain)
                 .font(.caption)
             

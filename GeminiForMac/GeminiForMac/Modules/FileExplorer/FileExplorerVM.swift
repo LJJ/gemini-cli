@@ -118,10 +118,10 @@ class FileExplorerVM: ObservableObject {
                 // 同步到Service
                 syncToService()
             } else {
-                errorMessage = "无法加载目录内容"
+                errorMessage = String(localized: "无法加载目录内容")
             }
         } catch {
-            errorMessage = "加载目录失败: \(error.localizedDescription)"
+            errorMessage = String(format: String(localized: "加载目录失败: %@"), error.localizedDescription)
         }
         
         isLoading = false

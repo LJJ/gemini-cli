@@ -22,8 +22,8 @@ class AuthCodeVM: ObservableObject {
     @Published var errorMessage: String?
     
     func submit() async {
-        guard !inputModel.code.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines).isEmpty else {
-            errorMessage = "请输入授权码"
+        guard !inputModel.code.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            errorMessage = String(localized: "请输入授权码")
             return
         }
         
@@ -38,7 +38,7 @@ class AuthCodeVM: ObservableObject {
             // 授权成功，关闭授权码输入界面
             authService.closeAuthCodeInput()
         } else {
-            errorMessage = "授权码验证失败，请检查授权码是否正确"
+            errorMessage = String(localized: "授权码验证失败，请检查授权码是否正确")
         }
     }
     

@@ -34,7 +34,7 @@ class ChatService: ObservableObject {
     init() {
         // 添加欢迎消息
         messages.append(ChatMessage(
-            content: "你好！我是 Gemini CLI 助手。我可以帮助你编写代码、回答问题或执行各种任务。\n\n💡 提示：你可以在文件浏览器中选择文件，然后发送消息时我会自动包含文件内容进行分析。",
+            content: String(localized: "你好！我是 Gemini CLI 助手。我可以帮助你编写代码、回答问题或执行各种任务。\n\n💡 提示：你可以在文件浏览器中选择文件，然后发送消息时我会自动包含文件内容进行分析。"),
             type: .text // 修改为 .text
         ))
     }
@@ -43,7 +43,7 @@ class ChatService: ObservableObject {
     func checkConnection() async {
         isConnected = await apiService.checkServerStatus()
         if !isConnected {
-            errorMessage = "无法连接到 Gemini CLI 服务器。请确保服务器正在运行。"
+            errorMessage = String(localized: "无法连接到 Gemini CLI 服务器。请确保服务器正在运行。")
         } else {
             errorMessage = nil
         }
@@ -59,12 +59,12 @@ class ChatService: ObservableObject {
         
         // 如果有文件路径，添加一个系统消息显示文件信息
         if !filePaths.isEmpty {
-            statusMessage = "📎 已选择 \(filePaths.count) 个文件进行分析" // 修改为更新 statusMessage
+            statusMessage = String(format: String(localized: "📎 已选择 %d 个文件进行分析"), filePaths.count) // 修改为更新 statusMessage
         }
         
         isLoading = true
         errorMessage = nil
-        statusMessage = "正在处理..." // 添加此行
+        statusMessage = String(localized: "正在处理...") // 添加此行
         
         do {
             // 统一使用流式响应，让 AI 自动决定是否需要交互式处理
@@ -76,15 +76,15 @@ class ChatService: ObservableObject {
                     handleStructuredEvent(event)
                 } else {
                     // 如果不是结构化事件，记录错误
-                    print("收到非结构化响应: \(chunk)")
+                    print(String(format: String(localized: "收到非结构化响应: %@"), chunk))
                 }
             }
         } catch {
-            errorMessage = "发送消息时发生错误: \(error.localizedDescription)"
+            errorMessage = String(format: String(localized: "发送消息时发生错误: %@"), error.localizedDescription)
         }
         
         isLoading = false
-        if statusMessage == "正在处理..." { // 检查是否是“正在处理...”消息
+        if statusMessage == String(localized: "正在处理...") { // 检查是否是“正在处理...”消息
             statusMessage = nil // 清空状态消息
         }
     }
@@ -111,15 +111,15 @@ class ChatService: ObservableObject {
             
         case .thought(let data):
             // 处理思考过程 - 更新 statusMessage
-            statusMessage = "💭 **\(data.subject)**\n\(data.description)"
+            statusMessage = String(format: String(localized: "💭 **%@**\n%@"), data.subject, data.description)
             
         case .toolCall(let data):
             // 处理工具调用 - 更新 statusMessage
-            statusMessage = "🔧 正在调用工具: \(data.displayName)"
+            statusMessage = String(format: String(localized: "🔧 正在调用工具: %@"), data.displayName)
             
         case .toolExecution(let data):
             // 处理工具执行状态 - 更新 statusMessage
-            statusMessage = "⚡ \(data.message)"
+            statusMessage = String(format: String(localized: "⚡ %@"), data.message)
             
         case .toolResult(let data):
             // 处理工具执行结果 - 更新 statusMessage
@@ -146,7 +146,7 @@ class ChatService: ObservableObject {
                 toolName: data.name,
                 confirmationDetails: ToolConfirmationDetails(
                     type: confirmationType,
-                    title: "需要确认工具调用: \(data.displayName)",
+                    title: String(format: String(localized: "需要确认工具调用: %@"), data.displayName),
                     command: data.args.command,
                     rootCommand: nil,
                     fileName: data.args.filePath ?? "",
@@ -165,7 +165,7 @@ class ChatService: ObservableObject {
             
         case .workspace(let data):
             // 处理工作区事件 - 更新workspace信息
-            print("收到工作区事件: workspace=\(data.workspacePath), currentPath=\(data.currentPath)")
+            print(String(format: String(localized: "收到工作区事件: workspace=%@, currentPath=%@"), data.workspacePath, data.currentPath))
             currentWorkspace = data.workspacePath
             currentPath = data.currentPath
             
@@ -228,7 +228,7 @@ class ChatService: ObservableObject {
     func handleToolConfirmation(outcome: ToolConfirmationOutcome) async {
         guard let confirmation = pendingToolConfirmation else { return }
         
-        print("tool call confirmed \(outcome)")
+        print(String(format: String(localized: "tool call confirmed %@"), String(describing: outcome)))
         
         // 发送确认到服务器
         if let response = await apiService.sendToolConfirmation(
@@ -242,13 +242,13 @@ class ChatService: ObservableObject {
                 try? await Task.sleep(nanoseconds: 1_000_000_000) // 1秒
                 
                 // 更新消息状态
-                statusMessage = "✅ 工具调用执行完成"
+                statusMessage = String(localized: "✅ 工具调用执行完成")
                 // 等待一段时间，让用户看到状态，然后清空
                 try? await Task.sleep(nanoseconds: 1_000_000_000) // 1秒
                 statusMessage = nil
             }
         } else {
-            errorMessage = "发送确认失败，请检查网络连接。"
+            errorMessage = String(localized: "发送确认失败，请检查网络连接。")
         }
         
         // 清除当前确认状态
@@ -281,7 +281,7 @@ class ChatService: ObservableObject {
     func cancelChat() async {
         print("ChatService: 正在发送取消聊天请求...")
         isLoading = false // 停止加载指示器
-        statusMessage = "正在取消..." // 显示取消状态
+        statusMessage = String(localized: "正在取消...") // 显示取消状态
         do {
             // 发送取消请求到后端
             let response = await apiService.sendPostRequest(path: "/cancelChat", body: [String: Any]())
@@ -291,13 +291,13 @@ class ChatService: ObservableObject {
                 clearAllConfirmations()
                 // UI状态的最终更新将由后端发送的流事件（例如错误事件）来处理
             } else {
-                let errorMessage = response?.message ?? "未知错误"
-                self.errorMessage = "取消聊天失败: \(errorMessage)"
-                print("ChatService: 取消聊天失败: \(errorMessage)")
+                let errorMessage = response?.message ?? String(localized: "未知错误")
+                self.errorMessage = String(format: String(localized: "取消聊天失败: %@"), errorMessage)
+                print(String(format: String(localized: "ChatService: 取消聊天失败: %@"), errorMessage))
             }
         } catch {
-            self.errorMessage = "取消聊天时发生网络错误: \(error.localizedDescription)"
-            print("ChatService: 取消聊天时发生网络错误: \(error.localizedDescription)")
+            self.errorMessage = String(format: String(localized: "取消聊天时发生网络错误: %@"), error.localizedDescription)
+            print(String(format: String(localized: "ChatService: 取消聊天时发生网络错误: %@"), error.localizedDescription))
         }
         // 不再在这里直接清除 statusMessage 或修改 messages，
         // 而是等待后端流的事件来更新最终状态。
@@ -310,7 +310,7 @@ class ChatService: ObservableObject {
         messages.removeAll()
         // 重新添加欢迎消息
         messages.append(ChatMessage(
-            content: "你好！我是 Gemini CLI 助手。我可以帮助你编写代码、回答问题或执行各种任务。\n\n💡 提示：你可以在文件浏览器中选择文件，然后发送消息时我会自动包含文件内容进行分析。",
+            content: String(localized: "你好！我是 Gemini CLI 助手。我可以帮助你编写代码、回答问题或执行各种任务。\n\n💡 提示：你可以在文件浏览器中选择文件，然后发送消息时我会自动包含文件内容进行分析。"),
             type: .text // 修改为 .text
         ))
     }
@@ -355,7 +355,7 @@ class ChatService: ObservableObject {
         
         // 添加一个系统消息提示用户
         let authMessage = ChatMessage(
-            content: "🔐 检测到认证问题，请重新进行认证设置",
+            content: String(localized: "🔐 检测到认证问题，请重新进行认证设置"),
             type: .text // 修改为 .text
         )
         messages.append(authMessage)
@@ -373,7 +373,7 @@ class ChatService: ObservableObject {
         
         // 添加一个系统消息提示用户
         let configMessage = ChatMessage(
-            content: "⚙️ 需要配置 Google Cloud Project，请在弹窗中完成设置",
+            content: String(localized: "⚙️ 需要配置 Google Cloud Project，请在弹窗中完成设置"),
             type: .text
         )
         messages.append(configMessage)
