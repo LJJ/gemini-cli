@@ -19,6 +19,7 @@ export type EventType =
   | 'tool_result' 
   | 'tool_confirmation' 
   | 'workspace'
+  | 'heart_beat'
   | 'complete' 
   | 'error';
 
@@ -31,6 +32,7 @@ export type EventData =
   | ToolResultEventData
   | ToolConfirmationEventData
   | WorkspaceEventData
+  | HeartBeatEventData
   | CompleteEventData
   | ErrorEventData;
 
@@ -102,6 +104,11 @@ export interface WorkspaceEventData {
   workspacePath: string;
   currentPath: string;
   description?: string;
+}
+
+// 9. 心跳事件数据
+export interface HeartBeatEventData {
+  timestamp: string;
 }
 
 // 事件工厂函数
@@ -203,6 +210,14 @@ export class StreamingEventFactory {
       timestamp: new Date().toISOString()
     };
   }
+
+  static createHeartBeatEvent(): StreamingEvent {
+    return {
+      type: 'heart_beat',
+      data: { timestamp: new Date().toISOString() },
+      timestamp: new Date().toISOString()
+    };
+  }
 }
 
 // 事件验证函数
@@ -247,4 +262,8 @@ export function isCompleteEvent(event: StreamingEvent): event is StreamingEvent 
 
 export function isErrorEvent(event: StreamingEvent): event is StreamingEvent & { data: ErrorEventData } {
   return event.type === 'error';
+}
+
+export function isHeartBeatEvent(event: StreamingEvent): event is StreamingEvent & { data: HeartBeatEventData } {
+  return event.type === 'heart_beat';
 } 

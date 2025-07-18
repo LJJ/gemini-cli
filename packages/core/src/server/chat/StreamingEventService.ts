@@ -16,8 +16,10 @@ import { CompletedToolCall } from '../../core/coreToolScheduler.js';
  * - 流式响应发送
  * - 事件格式化
  * - 响应头设置
+ * - 心跳保活
  */
 export class StreamingEventService {
+  private heartBeatIntervals: Map<express.Response, NodeJS.Timeout> = new Map();
   
   public setupStreamingResponse(res: express.Response): void {
     res.writeHead(200, {
@@ -103,7 +105,45 @@ export class StreamingEventService {
     this.writeEvent(res, event);
   }
 
+  public sendHeartBeatEvent(res: express.Response): void {
+    const event = StreamingEventFactory.createHeartBeatEvent();
+    this.writeEvent(res, event);
+  }
+
+  public startHeartBeat(res: express.Response): void {
+    // 清理已存在的定时器
+    this.stopHeartBeat(res);
+    
+    // 创建新的心跳定时器，每6秒发送一次
+    const interval = setInterval(() => {
+      this.sendHeartBeatEvent(res);
+    }, 6000);
+    
+    // 存储定时器引用
+    this.heartBeatIntervals.set(res, interval);
+    
+    // 监听响应结束事件，自动清理定时器
+    res.on('close', () => {
+      this.stopHeartBeat(res);
+    });
+    
+    res.on('finish', () => {
+      this.stopHeartBeat(res);
+    });
+  }
+
+  public stopHeartBeat(res: express.Response): void {
+    const interval = this.heartBeatIntervals.get(res);
+    if (interval) {
+      clearInterval(interval);
+      this.heartBeatIntervals.delete(res);
+    }
+  }
+
   public sendCompleteEvent(res: express.Response, success: boolean = true, message: string = '对话完成'): void {
+    // 停止心跳
+    this.stopHeartBeat(res);
+    
     // 检查响应是否已经结束
     if (res.writableEnded || res.destroyed) {
       console.warn('响应流已关闭，跳过发送完成事件');
@@ -120,6 +160,9 @@ export class StreamingEventService {
   }
 
   public sendErrorEvent(res: express.Response, message: string, code: string, details?: string): void {
+    // 停止心跳
+    this.stopHeartBeat(res);
+    
     // 检查响应是否已经结束
     if (res.writableEnded || res.destroyed) {
       console.warn('响应流已关闭，跳过发送错误事件');

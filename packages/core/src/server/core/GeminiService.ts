@@ -80,12 +80,17 @@ export class GeminiService {
   }
 
   public async handleChat(req: express.Request, res: express.Response) {
+    // 在方法开始时就设置流式响应头，避免后续重复设置
+    this.streamingEventService.setupStreamingResponse(res);
+    
     try {
       const { message, filePaths = [], workspacePath } = req.body;
       
+      // 启动心跳，每6秒发送一次心跳事件
+      this.streamingEventService.startHeartBeat(res);
+      this.streamingEventService.sendThoughtEvent(res, 'initializing...', 'initializing the workspace');
+
       if (!message) {
-        // 设置流式响应头
-        this.streamingEventService.setupStreamingResponse(res);
         // 发送错误事件而不是标准HTTP响应
         this.streamingEventService.sendErrorEvent(res, 'Message is required', ErrorCode.VALIDATION_ERROR);
         this.streamingEventService.sendCompleteEvent(res, false, '请求验证失败');
@@ -97,9 +102,6 @@ export class GeminiService {
         try {
           await this.workspaceService.ensureWorkspaceInitialized(workspacePath);
         } catch (clientError) {
-          // 设置流式响应头
-          this.streamingEventService.setupStreamingResponse(res);
-          
           // 检查是否是 GOOGLE_CLOUD_PROJECT 错误
           const errorCode = clientError instanceof Error && (clientError as any).code ? (clientError as any).code : ErrorCode.INTERNAL_ERROR;
           const errorMessage = clientError instanceof Error ? clientError.message : 'Unknown error';
@@ -112,8 +114,6 @@ export class GeminiService {
         // 如果没有提供工作区路径，检查是否已有活跃客户端
         const workspaceStatus = this.workspaceService.getWorkspaceStatus();
         if (!workspaceStatus.hasActiveClient) {
-          // 设置流式响应头
-          this.streamingEventService.setupStreamingResponse(res);
           this.streamingEventService.sendErrorEvent(res, 'No active workspace. Please initialize workspace first.', ErrorCode.CLIENT_NOT_INITIALIZED);
           this.streamingEventService.sendCompleteEvent(res, false, '工作区未初始化');
           return;
@@ -133,9 +133,6 @@ export class GeminiService {
       
     } catch (error) {
       console.error('Error in handleChat:', error);
-      
-      // 设置流式响应头
-      this.streamingEventService.setupStreamingResponse(res);
       
       // 发送错误事件而不是标准HTTP响应
       const errorCode = error instanceof Error && (error as any).code ? (error as any).code : ErrorCode.INTERNAL_ERROR;

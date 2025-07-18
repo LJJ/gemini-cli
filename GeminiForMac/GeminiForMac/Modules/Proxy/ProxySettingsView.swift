@@ -102,7 +102,15 @@ struct ProxySettingsView: View {
                 // 测试连接按钮
                 Button("测试连接") {
                     Task {
-                        let success = await proxyVM.testProxy()
+                        guard let portNumber = Int(proxyVM.port), !proxyVM.host.isEmpty else {
+                            proxyVM.showAlert(
+                                title: String(localized: "输入错误"),
+                                message: String(localized: "请输入有效的主机地址和端口号")
+                            )
+                            return
+                        }
+                        
+                        let success = await proxyVM.testProxy(host: proxyVM.host, port: portNumber, type: proxyVM.proxyType)
                         proxyVM.showAlert(
                             title: String(localized: "连接测试"),
                             message: success ? String(localized: "代理连接正常") : String(localized: "代理连接失败")
