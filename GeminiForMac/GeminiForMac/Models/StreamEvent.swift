@@ -64,6 +64,9 @@ struct StreamEvent: Codable {
         case .error:
             let errorData = try container.decode(ErrorEventData.self, forKey: .data)
             self.data = .error(errorData)
+        case .heartBeat:
+            let heartBeatData = try container.decode(HeartBeatEventData.self, forKey: .data)
+            self.data = .heartBeat(heartBeatData)
         }
     }
     
@@ -94,6 +97,8 @@ struct StreamEvent: Codable {
             try container.encode(completeData, forKey: .data)
         case .error(let errorData):
             try container.encode(errorData, forKey: .data)
+        case .heartBeat(let heartBeatData):
+            try container.encode(heartBeatData, forKey: .data)
         }
     }
     
@@ -111,6 +116,7 @@ enum EventType: String, Codable {
     case toolResult = "tool_result"
     case toolConfirmation = "tool_confirmation"
     case workspace = "workspace"
+    case heartBeat = "heart_beat"
     case complete = "complete"
     case error = "error"
 }
@@ -124,6 +130,7 @@ enum EventData {
     case toolResult(ToolResultEventData)
     case toolConfirmation(ToolConfirmationEventData)
     case workspace(WorkspaceEventData)
+    case heartBeat(HeartBeatEventData)
     case complete(CompleteEventData)
     case error(ErrorEventData)
 }
@@ -245,6 +252,11 @@ struct ErrorEventData: Codable {
     }
 }
 
+// 10. 心跳事件数据
+struct HeartBeatEventData: Codable {
+    let timestamp: String
+}
+
 // MARK: - 事件解析工具
 
 extension StreamEvent {
@@ -279,6 +291,7 @@ extension StreamEvent {
     var isToolResult: Bool { type == .toolResult }
     var isToolConfirmation: Bool { type == .toolConfirmation }
     var isWorkspace: Bool { type == .workspace }
+    var isHeartBeat: Bool { type == .heartBeat }
     var isComplete: Bool { type == .complete }
     var isError: Bool { type == .error }
 } 

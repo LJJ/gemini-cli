@@ -8,12 +8,14 @@ import { dirname } from 'path';
 import { mkdirSync } from 'fs';
 import { homedir } from 'os';
 import { join } from 'path';
+import { HttpsProxyAgent } from 'https-proxy-agent';
+import { SocksProxyAgent } from 'socks-proxy-agent';
 
 export interface ProxyConfig {
   enabled: boolean;
   host?: string;
   port?: number;
-  type?: 'http' | 'https' | 'socks';
+  type?: 'http' | 'https' | 'socks' | 'socks5';
   lastUpdated: number;
 }
 
@@ -176,7 +178,7 @@ export class ProxyConfigManager {
   /**
    * 设置代理
    */
-  public setProxy(host: string, port: number, type: 'http' | 'https' | 'socks' = 'http'): void {
+  public setProxy(host: string, port: number, type: 'http' | 'https' | 'socks' | 'socks5' = 'http'): void {
     console.log(`ProxyConfigManager: 设置代理 - host: ${host}, port: ${port}, type: ${type}`);
     this.updateConfig({
       enabled: true,
@@ -241,12 +243,22 @@ export class ProxyConfigManager {
   }
 
   /**
-   * 测试代理连接
+   * 测试代理服务器连接
+   * 只检查本地代理服务器是否可达，不测试外部网站连接
+   * @param testConfig 可选的临时代理配置，如果提供则测试此配置而不保存
    */
-  public async testProxy(): Promise<boolean> {
-    console.log('ProxyConfigManager: 开始测试代理连接');
-    const config = this.getConfig();
+  public async testProxy(testConfig?: Partial<ProxyConfig>): Promise<boolean> {
+    console.log('ProxyConfigManager: 开始测试代理服务器连接');
+    
+    // 如果提供了测试配置，使用测试配置；否则使用当前保存的配置
+    const config = testConfig ? { ...this.getConfig(), ...testConfig } : this.getConfig();
     console.log('ProxyConfigManager: 测试配置:', JSON.stringify(config, null, 2));
+    
+    if (testConfig) {
+      console.log('ProxyConfigManager: 使用临时配置进行测试（不会保存）');
+    } else {
+      console.log('ProxyConfigManager: 使用当前保存的配置进行测试');
+    }
     
     if (!config.enabled || !config.host || !config.port) {
       console.log('ProxyConfigManager: 代理未启用或配置不完整，跳过测试');
@@ -254,37 +266,41 @@ export class ProxyConfigManager {
     }
 
     try {
-      const proxyUrl = `http://${config.host}:${config.port}`;
-      console.log(`ProxyConfigManager: 测试代理URL: ${proxyUrl}`);
-      console.log('ProxyConfigManager: 当前环境变量状态:');
-      console.log('  http_proxy:', process.env.http_proxy);
-      console.log('  https_proxy:', process.env.https_proxy);
-      console.log('  HTTP_PROXY:', process.env.HTTP_PROXY);
-      console.log('  HTTPS_PROXY:', process.env.HTTPS_PROXY);
+      console.log(`ProxyConfigManager: 测试代理服务器 ${config.host}:${config.port} 连通性`);
       
-      console.log('ProxyConfigManager: 开始发送测试请求到 http://httpbin.org/ip');
+      // 使用 Node.js 原生的 net 模块测试 TCP 连接
+      const net = await import('net');
       
-      // 简单的连接测试
-      const response = await fetch('http://httpbin.org/ip', {
-        method: 'GET',
-        // @ts-ignore
-        agent: proxyUrl
+      return new Promise((resolve) => {
+        const socket = new net.Socket();
+        
+        // 设置连接超时
+        socket.setTimeout(5000);
+        
+        socket.on('connect', () => {
+          console.log('ProxyConfigManager: ✅ 代理服务器连接成功');
+          socket.destroy();
+          resolve(true);
+        });
+        
+        socket.on('error', (error) => {
+          console.log(`ProxyConfigManager: ❌ 代理服务器连接失败: ${error.message}`);
+          socket.destroy();
+          resolve(false);
+        });
+        
+        socket.on('timeout', () => {
+          console.log('ProxyConfigManager: ❌ 代理服务器连接超时');
+          socket.destroy();
+          resolve(false);
+        });
+        
+        // 尝试连接到代理服务器
+        socket.connect(config.port!, config.host!);
       });
       
-      console.log(`ProxyConfigManager: 测试响应状态: ${response.status} ${response.statusText}`);
-      
-      if (response.ok) {
-        const responseText = await response.text();
-        console.log('ProxyConfigManager: 测试响应内容:', responseText);
-        console.log('ProxyConfigManager: 代理测试成功');
-        return true;
-      } else {
-        console.log('ProxyConfigManager: 代理测试失败 - 响应状态异常');
-        return false;
-      }
     } catch (error) {
-      console.error('ProxyConfigManager: 代理测试失败 - 异常详情:', error);
-      console.error('ProxyConfigManager: 错误堆栈:', error instanceof Error ? error.stack : '未知错误类型');
+      console.error('ProxyConfigManager: 代理测试异常:', error instanceof Error ? error.message : '未知错误');
       return false;
     }
   }
