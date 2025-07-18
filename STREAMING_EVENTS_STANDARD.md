@@ -155,6 +155,158 @@
 }
 ```
 
+### 9. Heart Beat 事件
+**用途**: 保持SSE连接活跃，防止连接超时
+
+```json
+{
+  "type": "heart_beat",
+  "data": {
+    "timestamp": "2025-07-09T10:30:03.000Z"
+  },
+  "timestamp": "2025-07-09T10:30:03.000Z"
+}
+```
+
+**特性**:
+- 每6秒自动发送一次
+- 客户端收到后不需要处理
+- 用于保持长连接活跃
+- 防止代理服务器或防火墙断开连接
+
+### 2. Thought 事件
+**用途**: 显示 AI 的思考过程
+
+```json
+{
+  "type": "thought",
+  "data": {
+    "subject": "Considering a Response",
+    "description": "I'm analyzing the user's request..."
+  },
+  "timestamp": "2025-07-09T10:23:42.369Z"
+}
+```
+
+### 3. Tool Call 事件
+**用途**: 通知工具调用请求
+
+```json
+{
+  "type": "tool_call",
+  "data": {
+    "callId": "read-123",
+    "name": "read_file",
+    "displayName": "Read File",
+    "description": "读取指定文件的内容",
+    "args": {
+      "path": "/path/to/file.txt"
+    },
+    "requiresConfirmation": true
+  },
+  "timestamp": "2025-07-09T10:30:02.000Z"
+}
+```
+
+### 4. Tool Execution 事件
+**用途**: 显示工具执行状态
+
+```json
+{
+  "type": "tool_execution",
+  "data": {
+    "callId": "read-123",
+    "status": "executing",
+    "message": "正在执行 read_file..."
+  },
+  "timestamp": "2025-07-09T10:30:03.000Z"
+}
+```
+
+### 5. Tool Result 事件
+**用途**: 显示工具执行结果
+
+```json
+{
+  "type": "tool_result",
+  "data": {
+    "callId": "read-123",
+    "name": "read_file",
+    "result": "文件的实际内容",
+    "displayResult": "📄 文件内容已读取",
+    "success": true,
+    "error": null
+  },
+  "timestamp": "2025-07-09T10:30:04.000Z"
+}
+```
+
+### 6. Tool Confirmation 事件
+**用途**: 请求用户确认工具调用
+
+```json
+{
+  "type": "tool_confirmation",
+  "data": {
+    "callId": "read-123",
+    "name": "read_file",
+    "displayName": "Read File",
+    "description": "需要确认工具调用: read_file",
+    "prompt": "是否执行工具调用: read_file",
+    "command": "read_file /path/to/file.txt"
+  },
+  "timestamp": "2025-07-09T10:30:02.000Z"
+}
+```
+
+### 7. Complete 事件
+**用途**: 标记对话完成
+
+```json
+{
+  "type": "complete",
+  "data": {
+    "success": true,
+    "message": "对话完成"
+  },
+  "timestamp": "2025-07-09T10:30:06.000Z"
+}
+```
+
+### 8. Error 事件
+**用途**: 报告错误信息
+
+```json
+{
+  "type": "error",
+  "data": {
+    "message": "发生错误",
+    "code": "ERROR_CODE",
+    "details": "详细错误信息"
+  },
+  "timestamp": "2025-07-09T10:30:03.000Z"
+}
+```
+
+### 9. Heart Beat 事件
+**用途**: 保持SSE连接活跃，防止连接超时
+
+```json
+{
+  "type": "heart_beat",
+  "data": {
+    "timestamp": "2025-07-09T10:30:03.000Z"
+  },
+  "timestamp": "2025-07-09T10:30:03.000Z"
+}
+```
+
+**特性**:
+- 每6秒自动发送一次
+- 客户端收到后不需要处理
+- 用于保持长连接活跃
+- 防止代理服务器或防火墙断开连接
+
 ## 实现文件
 
 ### 后端 (TypeScript)

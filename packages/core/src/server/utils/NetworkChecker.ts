@@ -5,6 +5,8 @@
  */
 
 import { ProxyConfigManager } from './ProxyConfigManager.js';
+import { HttpsProxyAgent } from 'https-proxy-agent';
+import { SocksProxyAgent } from 'socks-proxy-agent';
 
 /**
  * 网络连接检查器
@@ -13,6 +15,9 @@ import { ProxyConfigManager } from './ProxyConfigManager.js';
 export class NetworkChecker {
   private static instance: NetworkChecker | null = null;
   private proxyManager: ProxyConfigManager;
+  
+  // 记录上次检查结果，如果是true就直接跳过
+  private static lastCheckResult: boolean | null = null;
 
   private constructor() {
     this.proxyManager = ProxyConfigManager.getInstance();
@@ -26,57 +31,94 @@ export class NetworkChecker {
   }
 
   /**
-   * 检查对Google服务的网络连接
-   * @returns Promise<boolean> 是否能够连接到Google服务
+   * 检查网络连接性
+   * @returns Promise<boolean> 是否能够连接到互联网
    */
   public async checkGoogleConnectivity(): Promise<boolean> {
-    console.log('NetworkChecker: 开始检查Google服务连接...');
+    // 如果上次检查结果是true，直接跳过
+    if (NetworkChecker.lastCheckResult === true) {
+      console.log('NetworkChecker: 上次检查网络正常，跳过检查');
+      return true;
+    }
 
-    // 定义要测试的Google服务端点
+    console.log('NetworkChecker: 开始检查网络连接...');
+
+    // 定义要测试的网络连接端点
+    // 使用可靠且可访问的测试端点来验证网络连接
     const testEndpoints = [
-      'https://www.google.com',
-      'https://generativelanguage.googleapis.com',
-      'https://oauth2.googleapis.com'
+      'https://www.gstatic.com/generate_204', // Google 官方网络测试端点，返回 204
+      'https://httpbin.org/ip',
+      'https://www.baidu.com'
     ];
 
-    // 尝试连接到至少一个Google服务
+    // 尝试连接到至少一个服务
     for (const endpoint of testEndpoints) {
       console.log(`NetworkChecker: 测试连接到 ${endpoint}`);
       
       if (await this.testConnection(endpoint)) {
         console.log(`NetworkChecker: 成功连接到 ${endpoint}`);
+        NetworkChecker.lastCheckResult = true;
         return true;
       }
     }
 
-    console.warn('NetworkChecker: 无法连接到任何Google服务');
+    console.warn('NetworkChecker: 无法连接到任何测试服务，可能需要配置代理');
+    NetworkChecker.lastCheckResult = false;
     return false;
   }
 
   /**
    * 测试对特定URL的连接
    * @param url 要测试的URL
-   * @param timeout 超时时间（毫秒），默认5秒
+   * @param timeout 超时时间（毫秒），默认10秒
    * @returns Promise<boolean> 是否能够连接
    */
-  private async testConnection(url: string, timeout: number = 5000): Promise<boolean> {
+  private async testConnection(url: string, timeout: number = 10000): Promise<boolean> {
     try {
       // 创建AbortController用于超时控制
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), timeout);
 
-      const response = await fetch(url, {
+      // 获取代理配置
+      const proxyConfig = this.proxyManager.getConfig();
+      
+      const fetchOptions: any = {
         method: 'HEAD', // 使用HEAD请求减少数据传输
         signal: controller.signal,
         headers: {
-          'User-Agent': 'Gemini-CLI-NetworkChecker/1.0'
+          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
         }
-      });
+      };
+
+      // 如果代理已启用，根据代理类型选择相应的 agent
+      if (proxyConfig.enabled && proxyConfig.host && proxyConfig.port) {
+        console.log(`NetworkChecker: 通过代理 ${proxyConfig.host}:${proxyConfig.port} 测试连接 ${url}`);
+        console.log(`NetworkChecker: 代理类型: ${proxyConfig.type || 'http'}`);
+        
+        if (proxyConfig.type === 'socks' || proxyConfig.type === 'socks5') {
+          // 使用 SOCKS5 代理
+          const proxyUrl = `socks5://${proxyConfig.host}:${proxyConfig.port}`;
+          console.log(`NetworkChecker: SOCKS5 代理URL: ${proxyUrl}`);
+          const agent = new SocksProxyAgent(proxyUrl);
+          fetchOptions.agent = agent;
+        } else {
+          // 使用 HTTP/HTTPS 代理
+          const proxyUrl = `${proxyConfig.type || 'http'}://${proxyConfig.host}:${proxyConfig.port}`;
+          console.log(`NetworkChecker: HTTP/HTTPS 代理URL: ${proxyUrl}`);
+          const agent = new HttpsProxyAgent(proxyUrl);
+          fetchOptions.agent = agent;
+        }
+      } else {
+        console.log(`NetworkChecker: 直接连接测试 ${url}`);
+      }
+
+      const response = await fetch(url, fetchOptions);
 
       clearTimeout(timeoutId);
 
       // 检查响应状态
-      if (response.ok || response.status === 301 || response.status === 302) {
+      if (response.ok || response.status === 204 || response.status === 301 || response.status === 302) {
+        console.log(`NetworkChecker: 成功连接到 ${url}，状态码: ${response.status}`);
         return true;
       }
 

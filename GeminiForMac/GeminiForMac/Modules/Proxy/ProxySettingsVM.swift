@@ -67,6 +67,33 @@ class ProxySettingsVM: ObservableObject {
         }
     }
     
+    /// 测试临时代理配置连接
+    func testProxy(host: String, port: Int, type: String) async -> Bool {
+        isLoading = true
+        lastError = nil
+        
+        let testConfig: [String: Any] = [
+            "enabled": true,
+            "host": host,
+            "port": port,
+            "type": type
+        ]
+        
+        let body: [String: Any] = [
+            "testConfig": testConfig
+        ]
+        
+        let baseResponse: BaseResponse<ProxyTestData>? = await apiService.postRequest(path: "/proxy/test", body: body)
+        if let baseResponse = baseResponse {
+            isLoading = false
+            return baseResponse.data.working
+        } else {
+            lastError = "测试代理连接失败"
+            isLoading = false
+            return false
+        }
+    }
+    
     /// 保存代理配置
     func saveConfig() async -> Bool {
         isLoading = true

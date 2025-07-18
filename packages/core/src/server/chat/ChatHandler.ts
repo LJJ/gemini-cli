@@ -61,9 +61,6 @@ export class ChatHandler {
       
       // 立即重置状态，确保每次请求都是干净的开始
       this.resetState();
-      
-      // 设置流式响应
-      this.streamingEventService.setupStreamingResponse(res);
 
       // 构建完整消息
       const fullMessage = this.buildFullMessage(message, filePaths);

@@ -177,6 +177,11 @@ class ChatService: ObservableObject {
             // 处理完成事件 - 清空 statusMessage
             print("chat complete")
             statusMessage = nil // 清空状态消息
+            
+        case .heartBeat(let data):
+            // 心跳事件 - 客户端不需要处理，仅用于保持连接
+            // 可以在这里添加调试日志，但通常不需要任何处理
+            break
         }
     }
     

@@ -276,7 +276,17 @@ export class APIServer {
     app.post('/proxy/test', async (req, res) => {
       try {
         const proxyManager = ProxyConfigManager.getInstance();
-        const isWorking = await proxyManager.testProxy();
+        
+        // 从请求体中获取可选的测试配置
+        const { testConfig } = req.body || {};
+        
+        if (testConfig) {
+          console.log('收到临时代理配置测试请求:', JSON.stringify(testConfig, null, 2));
+        } else {
+          console.log('测试当前保存的代理配置');
+        }
+        
+        const isWorking = await proxyManager.testProxy(testConfig);
         res.json(ResponseFactory.success(
           { working: isWorking }, 
           isWorking ? '代理连接正常' : '代理连接失败'
