@@ -46,9 +46,7 @@ export class NetworkChecker {
     // 定义要测试的网络连接端点
     // 使用可靠且可访问的测试端点来验证网络连接
     const testEndpoints = [
-      'https://www.gstatic.com/generate_204', // Google 官方网络测试端点，返回 204
-      'https://httpbin.org/ip',
-      'https://www.baidu.com'
+      'https://www.google.com' // Google 官方网络测试端点，返回 204
     ];
 
     // 尝试连接到至少一个服务
