@@ -46,7 +46,7 @@ struct MessageView: View {
                 } else {
                     // Gemini 回复使用 Markdown 渲染
                     MarkdownTextView(text: message.content)
-                        .markdownTheme(.basic)
+                        .markdownTheme(.myGitHub)
                         .padding(.horizontal, 12)
                         .padding(.vertical, 8)
                         .background(

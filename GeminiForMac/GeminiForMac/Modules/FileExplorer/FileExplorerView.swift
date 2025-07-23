@@ -48,7 +48,6 @@ struct FileExplorerView: View {
             // 文件列表
             FileListContent(viewModel: fileExplorerVM)
         }
-        .frame(minWidth: 200, maxWidth: 300)
         .background(Color(NSColor.controlBackgroundColor))
     }
 }
