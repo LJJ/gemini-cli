@@ -385,6 +385,10 @@ else
     echo "❌ 警告: 找不到服务配置模板"
 fi
 
+# 刷新 Launchpad 以显示新安装的应用
+sudo -u "$CURRENT_USER" /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -f /Applications/GeminiForMac.app 2>/dev/null || true
+sudo -u "$CURRENT_USER" killall Dock 2>/dev/null || true
+
 # 自动启动 Launch Agent 服务
 if [ -f "$PLIST_TARGET" ]; then
     echo "启动 Launch Agent 服务..."
