@@ -294,6 +294,23 @@ final class APIService: Sendable {
         return baseResponse?.data
     }
     
+    // 搜索文件
+    func searchFiles(query: String, currentPath: String, searchType: String? = nil, maxResults: Int? = nil) async -> DirectoryData? {
+        var body: [String: Any] = [
+            "query": query,
+            "currentPath": currentPath
+        ]
+        
+        if let searchType = searchType {
+            body["searchType"] = searchType
+        }
+        if let maxResults = maxResults {
+            body["maxResults"] = maxResults
+        }
+        
+        let baseResponse: BaseResponse<DirectoryData>? = await postRequest(path: "/search-files", body: body)
+        return baseResponse?.data
+    }
 
     
     // 通用的 POST 请求方法（保留用于特殊需求）

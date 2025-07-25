@@ -30,11 +30,20 @@ class FileExplorerVM: ObservableObject {
     @Published var isLoading = false
     @Published var errorMessage: String?
     @Published var searchText = ""
-    
+    @Published var searchResults: [DirectoryItem] = []
+    @Published var isSearching = false
+    @Published var isInSearchMode = false
+
     // MARK: - Internal State
     @Published private var navigationState = NavigationState()
     @Published private var selectionState = SelectionState()
     @Published private var expansionState = ExpansionState()
+    
+    // 原始目录数据（搜索时保留）
+    private var originalItems: [DirectoryItem] = []
+    
+    // 搜索防抖
+    private var searchTask: Task<Void, Never>?
     
     // MARK: - Computed Properties
     var currentPath: String {
@@ -66,9 +75,12 @@ class FileExplorerVM: ObservableObject {
     }
     
     var filteredItems: [DirectoryItem] {
-        if searchText.isEmpty {
+        if isInSearchMode {
+            return searchResults
+        } else if searchText.isEmpty {
             return items
         } else {
+            // 本地过滤作为备用方案
             return items.filter { item in
                 item.name.localizedCaseInsensitiveContains(searchText)
             }
@@ -277,11 +289,54 @@ class FileExplorerVM: ObservableObject {
     
     func searchFiles(query: String) {
         searchText = query
-        // 这里可以实现更复杂的搜索功能
-        // 比如服务器端搜索等
+        
+        // 取消之前的搜索任务
+        searchTask?.cancel()
+        
+        if query.isEmpty {
+            clearSearch()
+            return
+        }
+        
+        // 创建新的防抖搜索任务
+        searchTask = Task {
+            // 等待 500ms 防抖
+            try? await Task.sleep(nanoseconds: 500_000_000)
+            
+            // 检查任务是否被取消
+            if !Task.isCancelled {
+                await performServerSearch(query: query)
+            }
+        }
+    }
+    
+    private func performServerSearch(query: String) async {
+        isSearching = true
+        
+        do {
+            if let response = await apiService.searchFiles(
+                query: query, 
+                currentPath: navigationState.currentPath,
+                searchType: "all",
+                maxResults: 200
+            ) {
+                searchResults = sortItems(response.items)
+                isInSearchMode = true
+            } else {
+                errorMessage = String(localized: "搜索失败")
+            }
+        } catch {
+            errorMessage = String(format: String(localized: "搜索失败: %@"), error.localizedDescription)
+        }
+        
+        isSearching = false
     }
     
     func clearSearch() {
+        searchTask?.cancel() // 取消搜索任务
         searchText = ""
+        searchResults = []
+        isInSearchMode = false
+        isSearching = false
     }
 }

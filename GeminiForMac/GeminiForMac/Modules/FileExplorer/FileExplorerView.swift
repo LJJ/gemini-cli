@@ -34,9 +34,17 @@ struct FileExplorerView: View {
             }
             
             // 搜索框
-            SearchBar(searchText: $fileExplorerVM.searchText, onClear: {
-                fileExplorerVM.clearSearch()
-            })
+            SearchBar(
+                searchText: $fileExplorerVM.searchText, 
+                onClear: {
+                    fileExplorerVM.clearSearch()
+                },
+                isSearching: fileExplorerVM.isSearching,
+                onSearchTextChange: { newValue in
+                    // 使用防抖搜索，避免频繁调用API
+                    fileExplorerVM.searchFiles(query: newValue)
+                }
+            )
             
             Divider()
             
@@ -176,6 +184,8 @@ struct SelectionStatusBar: View {
 struct SearchBar: View {
     @Binding var searchText: String
     let onClear: () -> Void
+    let isSearching: Bool
+    let onSearchTextChange: (String) -> Void
     
     var body: some View {
         HStack {
@@ -186,6 +196,15 @@ struct SearchBar: View {
             TextField(String(localized: "搜索文件..."), text: $searchText)
                 .textFieldStyle(.plain)
                 .font(.caption)
+                .onChange(of: searchText) { newValue in
+                    onSearchTextChange(newValue)
+                }
+            
+            if isSearching {
+                ProgressView()
+                    .scaleEffect(0.6)
+                    .frame(width: 12, height: 12)
+            }
             
             if !searchText.isEmpty {
                 Button(action: onClear) {

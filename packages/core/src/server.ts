@@ -220,7 +220,10 @@ export class APIServer {
     app.post('/write-file', (req, res) => {
       this.fileService.writeFile(req, res);
     });
-    
+    app.post('/search-files', (req, res) => {
+      this.fileService.searchFiles(req, res);
+    });
+
     // 命令执行
     app.post('/execute-command', (req, res) => {
       this.commandService.executeCommand(req, res);
