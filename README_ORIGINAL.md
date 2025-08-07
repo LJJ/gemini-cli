@@ -1,158 +1,292 @@
-# Gemini CLI
+# GeminiForMac
 
-[![Gemini CLI CI](https://github.com/google-gemini/gemini-cli/actions/workflows/ci.yml/badge.svg)](https://github.com/google-gemini/gemini-cli/actions/workflows/ci.yml)
+GeminiForMac is a macOS desktop client based on [gemini-cli](./README_ORIGINAL.md), providing a user-friendly graphical interface for interacting with Google Gemini AI.
 
-![Gemini CLI Screenshot](./docs/assets/gemini-screenshot.png)
+## Features
+![client-Code](./docs/assets/client_code_review.png)
 
-This repository contains the Gemini CLI, a command-line AI workflow tool that connects to your
-tools, understands your code and accelerates your workflows.
+- **Intuitive GUI**: Modern native macOS interface design
+- **File Management**: Built-in file browser for easy project file management
+- **Proxy Support**: Built-in proxy settings with network proxy configuration
+- **Project Management**: Support for switching and managing multiple projects
 
-With the Gemini CLI you can:
+## Interface Overview
+![client-Mian](./docs/assets/client_main.png)
 
+<<<<<<< HEAD
+The application includes the following main interfaces:
+- **Chat Interface**: Main conversation interaction area with Markdown rendering support
+- **File Explorer**: Left sidebar file tree for browsing and selecting project files
+- **Settings Panel**: Proxy settings, project configuration, etc.
+- **Login Interface**: Support for Google account login and API Key configuration
+=======
 - Query and edit large codebases in and beyond Gemini's 1M token context window.
 - Generate new apps from PDFs or sketches, using Gemini's multimodal capabilities.
 - Automate operational tasks, like querying pull requests or handling complex rebases.
+- Integrate with GitHub: Use the [Gemini CLI GitHub Action](https://github.com/google-github-actions/run-gemini-cli) for automated PR reviews, issue triage, and on-demand AI assistance directly in your repositories.
 - Use tools and MCP servers to connect new capabilities, including [media generation with Imagen,
   Veo or Lyria](https://github.com/GoogleCloudPlatform/vertex-ai-creative-studio/tree/main/experiments/mcp-genmedia)
 - Ground your queries with the [Google Search](https://ai.google.dev/gemini-api/docs/grounding)
-  tool, built in to Gemini.
+  tool, built into Gemini.
+>>>>>>> origin/main
 
-## Quickstart
+## Installation and Usage
 
-1. **Prerequisites:** Ensure you have [Node.js version 20](https://nodejs.org/en/download) or higher installed.
-2. **Run the CLI:** Execute the following command in your terminal:
+### System Requirements
 
-   ```bash
-   npx https://github.com/google-gemini/gemini-cli
-   ```
+- macOS 14.0 or higher
+- Network connection (for AI services)
 
-   Or install it with:
+### Installation Steps
 
-   ```bash
-   npm install -g @google/gemini-cli
-   ```
+1. Download and install the PKG installer
+2. Double-click the PKG file to install
+3. Launch the GeminiForMac application
+4. Server will start automatically (handled by postinstall script)
+5. Follow the interface prompts to complete login and configuration
 
-   Then, run the CLI from anywhere:
+### Proxy Settings
 
-   ```bash
-   gemini
-   ```
+If you need to use a proxy to access the network:
 
-3. **Pick a color theme**
-4. **Authenticate:** When prompted, sign in with your personal Google account. This will grant you up to 60 model requests per minute and 1,000 model requests per day using Gemini.
+1. Open "Proxy Settings" in the application
+2. Configure proxy server address and port
+3. Save settings and restart the service
 
-You are now ready to use the Gemini CLI!
+The system will automatically detect `http://127.0.0.1:7890` proxy by default.
 
-### Use a Gemini API key:
+## Development and Packaging
 
-The Gemini API provides a free tier with [100 requests per day](https://ai.google.dev/gemini-api/docs/rate-limits#free-tier) using Gemini 2.5 Pro, control over which model you use, and access to higher rate limits (with a paid plan):
+### Building the Application
 
-1. Generate a key from [Google AI Studio](https://aistudio.google.com/apikey).
-2. Set it as an environment variable in your terminal. Replace `YOUR_API_KEY` with your generated key.
+```bash
+# Navigate to the iOS/macOS project directory
+cd GeminiForMac
 
-   ```bash
-   export GEMINI_API_KEY="YOUR_API_KEY"
-   ```
-
-3. (Optionally) Upgrade your Gemini API project to a paid plan on the API key page (will automatically unlock [Tier 1 rate limits](https://ai.google.dev/gemini-api/docs/rate-limits#tier-1))
-
-### Use a Vertex AI API key:
-
-The Vertex AI API provides a [free tier](https://cloud.google.com/vertex-ai/generative-ai/docs/start/express-mode/overview) using express mode for Gemini 2.5 Pro, control over which model you use, and access to higher rate limits with a billing account:
-
-1. Generate a key from [Google Cloud](https://cloud.google.com/vertex-ai/generative-ai/docs/start/api-keys).
-2. Set it as an environment variable in your terminal. Replace `YOUR_API_KEY` with your generated key and set GOOGLE_GENAI_USE_VERTEXAI to true
-
-   ```bash
-   export GOOGLE_API_KEY="YOUR_API_KEY"
-   export GOOGLE_GENAI_USE_VERTEXAI=true
-   ```
-
-3. (Optionally) Add a billing account on your project to get access to [higher usage limits](https://cloud.google.com/vertex-ai/generative-ai/docs/quotas)
-
-For other authentication methods, including Google Workspace accounts, see the [authentication](./docs/cli/authentication.md) guide.
-
-## Examples
-
-Once the CLI is running, you can start interacting with Gemini from your shell.
-
-You can start a project from a new directory:
-
-```sh
-cd new-project/
-gemini
-> Write me a Gemini Discord bot that answers questions using a FAQ.md file I will provide
+# Build using Xcode
+xcodebuild build -project GeminiForMac.xcodeproj -scheme GeminiForMac -configuration Release
 ```
 
-Or work with an existing project:
+### Creating Installer Package
 
-```sh
-git clone https://github.com/google-gemini/gemini-cli
-cd gemini-cli
-gemini
-> Give me a summary of all of the changes that went in yesterday
+```bash
+# Run the packaging script
+./macPackage/scripts/package-macos-pkg.sh
 ```
 
-### Next steps
+After packaging is complete, the PKG file will be generated in the `macPackage/dist/` directory.
 
-- Learn how to [contribute to or build from the source](./CONTRIBUTING.md).
-- Explore the available **[CLI Commands](./docs/cli/commands.md)**.
-- If you encounter any issues, review the **[troubleshooting guide](./docs/troubleshooting.md)**.
-- For more comprehensive documentation, see the [full documentation](./docs/index.md).
-- Take a look at some [popular tasks](#popular-tasks) for more inspiration.
-- Check out our **[Official Roadmap](./ROADMAP.md)**
+### Viewing Logs
 
-### Troubleshooting
+Application logs are stored in the following locations:
 
-Head over to the [troubleshooting guide](docs/troubleshooting.md) if you're
-having issues.
+- **Application Logs**: `~/Library/Logs/GeminiForMac/`
+- **Server Logs**: `~/Library/Logs/GeminiForMac/gemini-server.log`
+- **Error Logs**: `~/Library/Logs/GeminiForMac/gemini-server-error.log`
+
+```bash
+# View real-time logs
+tail -f ~/Library/Logs/GeminiForMac/gemini-server.log
+
+# View error logs
+tail -f ~/Library/Logs/GeminiForMac/gemini-server-error.log
+```
+
+### Restarting the Server
+
+```bash
+# Stop service
+launchctl unload ~/Library/LaunchAgents/com.gemini.cli.server.plist
+
+# Start service
+launchctl load ~/Library/LaunchAgents/com.gemini.cli.server.plist
+
+# Check service status
+launchctl list | grep com.gemini.cli.server
+
+# Verify service port
+curl http://localhost:18080/health
+```
+
+## Uninstallation
+
+### Complete Uninstallation Steps
+
+1. **Stop background service**:
+   ```bash
+   launchctl unload ~/Library/LaunchAgents/com.gemini.cli.server.plist
+   ```
+
+2. **Delete application**:
+   ```bash
+   rm -rf /Applications/GeminiForMac.app
+   ```
+
+3. **Clean user data**:
+   ```bash
+   # Delete server files
+   rm -rf ~/.gemini-server
+   
+   # Delete Launch Agent configuration
+   rm -f ~/Library/LaunchAgents/com.gemini.cli.server.plist
+   
+   # Delete log files
+   rm -rf ~/Library/Logs/GeminiForMac
+   ```
+
+<<<<<<< HEAD
+4. **Clean configuration files** (optional):
+=======
+### With Homebrew
+
+1. **Prerequisites:** Ensure you have [Homebrew](https://brew.sh/) installed.
+2. **Install the CLI:** Execute the following command in your terminal:
+
+>>>>>>> origin/main
+   ```bash
+   # Delete application configuration (if complete cleanup needed)
+   rm -rf ~/Library/Preferences/com.gemini.cli.*
+   rm -rf ~/Library/Application\ Support/GeminiForMac
+   ```
+
+## System Architecture
+
+### Overall Architecture
+
+```
+┌─────────────────┐    HTTP/WebSocket     ┌─────────────────┐
+│                 │ ──────────────────→   │                 │
+│  macOS Client   │                       │ Background      │
+│  (SwiftUI)      │ ←────────────────── │ Server (Node.js)│
+│                 │                       │                 │
+└─────────────────┘                       └─────────────────┘
+         │                                         │
+         │                                         │
+    ┌────▼────┐                               ┌────▼────┐
+    │ Local UI│                               │ Gemini  │
+    │Components│                              │  API    │
+    └─────────┘                               └─────────┘
+```
+
+### Core Components
+
+#### 1. macOS Client (`GeminiForMac/`)
+
+Native macOS application built with SwiftUI:
+
+- **Main Modules**:
+  - `MainView.swift`: Main interface container
+  - `Modules/Input/`: Input components with dynamic height adjustment
+  - `Modules/FileExplorer/`: File browser
+  - `Modules/Login/`: Login and authentication
+  - `Modules/Proxy/`: Proxy settings
+  - `Services/`: Network services and data management
+
+#### 2. Background Server (`packages/core/src/server/`)
+
+Node.js background service providing API endpoints:
+
+<<<<<<< HEAD
+- **Core Services**:
+  - `core/GeminiService.ts`: Gemini API integration
+  - `auth/AuthService.ts`: Authentication management
+  - `chat/ChatHandler.ts`: Chat processing
+  - `files/FileService.ts`: File operations
+  - `project/ProjectService.ts`: Project management
+  - `utils/ProxyConfigManager.ts`: Proxy configuration
+=======
+## GitHub Integration
+
+Integrate Gemini CLI directly into your GitHub workflows with the [**Gemini CLI GitHub Action**](https://github.com/google-github-actions/run-gemini-cli). Key features include:
+
+- **Pull Request Reviews**: Automatically review pull requests when they're opened.
+- **Issue Triage**: Automatically triage and label GitHub issues.
+- **On-demand Collaboration**: Mention `@gemini-cli` in issues and pull requests for assistance and task delegation.
+- **Custom Workflows**: Set up your own scheduled tasks and event-driven automations.
 
 ## Popular tasks
+>>>>>>> origin/main
 
-### Explore a new codebase
+#### 3. Communication Protocol
 
-Start by `cd`ing into an existing or newly-cloned repository and running `gemini`.
+- **HTTP API**: Standard REST interfaces for basic operations
+- **WebSocket**: For real-time chat and streaming responses
+- **Port**: Uses port `18080` by default
 
+#### 4. Data Flow
+
+1. User inputs message in macOS client
+2. Client sends to background server via HTTP/WebSocket
+3. Server calls Gemini API to process request
+4. Response streams back to client via WebSocket
+5. Client renders response content in real-time
+
+<<<<<<< HEAD
+### Configuration Management
+=======
 ```text
-> Describe the main pieces of this system's architecture.
+> Provide a step-by-step dev onboarding doc for developers new to the codebase.
 ```
 
 ```text
-> What security mechanisms are in place?
+> Summarize this codebase and highlight the most interesting patterns or techniques I could learn from.
+```
+
+```text
+> Identify potential areas for improvement or refactoring in this codebase, highlighting parts that appear fragile, complex, or hard to maintain.
+```
+
+```text
+> Which parts of this codebase might be challenging to scale or debug?
+```
+
+```text
+> Generate a README section for the [module name] module explaining what it does and how to use it.
+```
+
+```text
+> What kind of error handling and logging strategies does the project use?
+```
+
+```text
+> Which tools, libraries, and dependencies are used in this project?
 ```
 
 ### Work with your existing code
+>>>>>>> origin/main
 
-```text
-> Implement a first draft for GitHub issue #123.
-```
+- **Server Configuration**: `~/.gemini-server/` directory
+- **Launch Agent**: `~/Library/LaunchAgents/com.gemini.cli.server.plist`
+- **Proxy Configuration**: Auto-detection or manual configuration
 
-```text
-> Help me migrate this codebase to the latest version of Java. Start with a plan.
-```
+## Troubleshooting
 
-### Automate your workflows
+### Common Issues
 
-Use MCP servers to integrate your local system tools with your enterprise collaboration suite.
+1. **Server fails to start**:
+   - Check if port 18080 is occupied
+   - View error logs: `~/Library/Logs/GeminiForMac/gemini-server-error.log`
 
-```text
-> Make me a slide deck showing the git history from the last 7 days, grouped by feature and team member.
-```
+2. **Cannot connect to Gemini API**:
+   - Check network connection
+   - Verify proxy settings are correct
+   - Validate API Key or login status
 
-```text
-> Make a full-screen web app for a wall display to show our most interacted-with GitHub issues.
-```
+3. **Interface anomalies**:
+   - Restart the application
+   - Check macOS version compatibility
 
-### Interact with your system
+### Getting Help
 
-```text
-> Convert all the images in this directory to png, and rename them to use dates from the exif data.
-```
+- View original project documentation: [README_ORIGINAL.md](./README_ORIGINAL.md)
+- Check log files for detailed error information
+- Restart server service
 
-```text
-> Organize my PDF invoices by month of expenditure.
-```
+## License
 
+<<<<<<< HEAD
+This project is based on the original gemini-cli project. Please refer to the relevant license terms.
+=======
 ### Uninstall
 
 Head over to the [Uninstall](docs/Uninstall.md) guide for uninstallation instructions.
@@ -160,3 +294,8 @@ Head over to the [Uninstall](docs/Uninstall.md) guide for uninstallation instruc
 ## Terms of Service and Privacy Notice
 
 For details on the terms of service and privacy notice applicable to your use of Gemini CLI, see the [Terms of Service and Privacy Notice](./docs/tos-privacy.md).
+
+## Security Disclosures
+
+Please see our [security disclosure process](SECURITY.md). All [security advisories](https://github.com/google-gemini/gemini-cli/security/advisories) are managed on Github.
+>>>>>>> origin/main

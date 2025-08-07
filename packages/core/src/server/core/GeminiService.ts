@@ -14,13 +14,14 @@ import { ToolConfirmationRequest } from '../types/api-types.js';
 import { ToolConfirmationOutcome } from '../../tools/tools.js';
 import { ErrorCode } from '../types/error-codes.js';
 import { configFactory } from './ConfigFactory.js';
-import { DEFAULT_GEMINI_MODEL, DEFAULT_GEMINI_FLASH_MODEL } from '../../config/models.js';
+import { DEFAULT_GEMINI_MODEL, DEFAULT_GEMINI_FLASH_MODEL, DEFAULT_GEMINI_FLASH_LITE_MODEL } from '../../config/models.js';
 import { WorkspaceService } from '../workspace/WorkspaceService.js';
 
 // 支持的模型列表
 const SUPPORTED_MODELS = [
   DEFAULT_GEMINI_MODEL,
-  DEFAULT_GEMINI_FLASH_MODEL
+  DEFAULT_GEMINI_FLASH_MODEL,
+  DEFAULT_GEMINI_FLASH_LITE_MODEL
 ] as const;
 
 /**

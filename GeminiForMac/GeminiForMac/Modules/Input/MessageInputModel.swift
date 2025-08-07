@@ -8,7 +8,20 @@ struct ModelInfo {
     init(name: String, isAvailable: Bool) {
         self.name = name
         self.isAvailable = isAvailable
-        self.displayName = name == "gemini-2.5-pro" ? "Gemini Pro" : "Gemini Flash"
+        self.displayName = Self.getDisplayName(for: name)
+    }
+    
+    private static func getDisplayName(for modelName: String) -> String {
+        switch modelName {
+        case "gemini-2.5-pro":
+            return "Gemini 2.5 Pro"
+        case "gemini-2.5-flash":
+            return "Gemini 2.5 Flash"
+        case "gemini-2.5-flash-lite":
+            return "Gemini 2.5 Flash Lite"
+        default:
+            return modelName
+        }
     }
 }
 

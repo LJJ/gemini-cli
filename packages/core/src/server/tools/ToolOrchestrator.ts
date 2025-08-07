@@ -41,9 +41,12 @@ export class ToolOrchestrator {
       onAllToolCallsComplete: this.handleAllToolCallsComplete.bind(this),
       onToolCallsUpdate: this.handleToolCallsUpdate.bind(this),
       outputUpdateHandler: this.handleOutputUpdate.bind(this),
-      approvalMode: ApprovalMode.DEFAULT,
       getPreferredEditor: () => 'vscode',
-      config
+      config,
+      onEditorClose: () => {
+        // 编辑器关闭时的处理逻辑
+        console.log('编辑器已关闭');
+      }
     });
   }
 
