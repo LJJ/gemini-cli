@@ -16,6 +16,7 @@ import { ErrorCode } from '../types/error-codes.js';
 import { configFactory } from './ConfigFactory.js';
 import { DEFAULT_GEMINI_MODEL, DEFAULT_GEMINI_FLASH_MODEL, DEFAULT_GEMINI_FLASH_LITE_MODEL } from '../../config/models.js';
 import { WorkspaceService } from '../workspace/WorkspaceService.js';
+import { tokenLimit } from '../../core/tokenLimits.js';
 
 // 支持的模型列表
 const SUPPORTED_MODELS = [
@@ -33,11 +34,13 @@ const SUPPORTED_MODELS = [
  * - 依赖注入管理
  * - 高级别错误处理
  * - 智能工作目录管理
+ * - Token使用情况跟踪
  * 
  * 优化后的特性：
  * - 使用ConfigFactory管理依赖
  * - AuthService作为全局单例
  * - 简化的依赖管理
+ * - 实时token使用情况跟踪
  */
 export class GeminiService {
   private clientManager: ClientManager;
@@ -45,6 +48,10 @@ export class GeminiService {
   private toolOrchestrator: ToolOrchestrator;
   private chatHandler: ChatHandler;
   private workspaceService: WorkspaceService;
+  
+  // Token使用情况跟踪
+  private currentTokenCount: number = 0;
+  private currentModel: string = DEFAULT_GEMINI_MODEL;
 
   constructor() {
     // 使用ConfigFactory管理依赖，简化初始化
@@ -57,6 +64,45 @@ export class GeminiService {
       this.toolOrchestrator
     );
     this.workspaceService = new WorkspaceService(this.clientManager);
+  }
+
+  /**
+   * 获取当前context剩余百分比
+   */
+  private getContextRemainingPercentage(): number {
+    const limit = tokenLimit(this.currentModel);
+    const percentage = this.currentTokenCount / limit;
+    return Math.max(0, Math.min(100, (1 - percentage) * 100));
+  }
+
+  /**
+   * 更新token使用情况
+   */
+  private updateTokenUsage(inputTokenCount: number): void {
+    this.currentTokenCount = inputTokenCount;
+  }
+
+  /**
+   * 重置token使用情况
+   */
+  public resetTokenUsage(): void {
+    this.currentTokenCount = 0;
+  }
+
+  /**
+   * 获取token使用情况信息
+   */
+  private getTokenUsageInfo() {
+    const limit = tokenLimit(this.currentModel);
+    const remainingPercentage = this.getContextRemainingPercentage();
+    
+    return {
+      currentTokenCount: this.currentTokenCount,
+      tokenLimit: limit,
+      remainingPercentage: Math.round(remainingPercentage),
+      remainingTokens: limit - this.currentTokenCount,
+      model: this.currentModel
+    };
   }
 
   /**
@@ -121,16 +167,39 @@ export class GeminiService {
         }
       }
 
+      // 获取当前模型并更新token跟踪
+      const container = configFactory.getCurrentWorkspaceContainer();
+      if (container?.config) {
+        this.currentModel = container.config.getModel();
+      }
+
       const workspaceStatus = this.workspaceService.getWorkspaceStatus();
       console.log('Processing chat request', { 
         message: message.substring(0, 100),
         filePaths: filePaths.length,
         requestedWorkspace: workspacePath || '(当前工作区)',
-        currentWorkspace: workspaceStatus.currentWorkspace
+        currentWorkspace: workspaceStatus.currentWorkspace,
+        currentModel: this.currentModel
       });
 
-      // 委托给聊天处理器
-      await this.chatHandler.handleStreamingChat(message, filePaths, res);
+      // 发送初始token使用情况
+      const initialTokenInfo = this.getTokenUsageInfo();
+      console.log('发送初始token使用情况:', initialTokenInfo);
+      this.streamingEventService.sendTokenUsageEvent(res, initialTokenInfo);
+
+      // 委托给聊天处理器，并传入token更新回调
+      await this.chatHandler.handleStreamingChat(
+        message, 
+        filePaths, 
+        res,
+        (inputTokenCount: number) => {
+          console.log('收到token更新回调，inputTokenCount:', inputTokenCount);
+          this.updateTokenUsage(inputTokenCount);
+          const tokenInfo = this.getTokenUsageInfo();
+          console.log('发送更新后的token使用情况:', tokenInfo);
+          this.streamingEventService.sendTokenUsageEvent(res, tokenInfo);
+        }
+      );
       
     } catch (error) {
       console.error('Error in handleChat:', error);
@@ -317,6 +386,9 @@ export class GeminiService {
       config.setModel(model);
       // 同步ClientManager的模型状态
       this.clientManager.setCurrentModel(model);
+      // 更新当前模型并重置token使用情况
+      this.currentModel = model;
+      this.resetTokenUsage();
       
       // 检查新模型的可用性
       const authService = configFactory.getAuthService();

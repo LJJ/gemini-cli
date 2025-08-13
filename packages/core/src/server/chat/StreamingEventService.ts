@@ -183,6 +183,24 @@ export class StreamingEventService {
     this.writeEvent(res, event);
   }
 
+  public sendTokenUsageEvent(res: express.Response, tokenInfo: {
+    currentTokenCount: number;
+    tokenLimit: number;
+    remainingPercentage: number;
+    remainingTokens: number;
+    model: string;
+  }): void {
+    console.log('发送token_usage事件:', tokenInfo);
+    const event = StreamingEventFactory.createTokenUsageEvent(
+      tokenInfo.currentTokenCount,
+      tokenInfo.tokenLimit,
+      tokenInfo.remainingPercentage,
+      tokenInfo.remainingTokens,
+      tokenInfo.model
+    );
+    this.writeEvent(res, event);
+  }
+
   private writeEvent(res: express.Response, event: StreamingEvent): void {
     // 检查响应是否已经结束，避免 ERR_STREAM_WRITE_AFTER_END 错误
     if (res.writableEnded || res.destroyed) {

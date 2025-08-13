@@ -21,7 +21,8 @@ export type EventType =
   | 'workspace'
   | 'heart_beat'
   | 'complete' 
-  | 'error';
+  | 'error'
+  | 'token_usage';
 
 // 事件数据联合类型
 export type EventData = 
@@ -34,7 +35,8 @@ export type EventData =
   | WorkspaceEventData
   | HeartBeatEventData
   | CompleteEventData
-  | ErrorEventData;
+  | ErrorEventData
+  | TokenUsageEventData;
 
 // 1. 内容事件数据
 export interface ContentEventData {
@@ -97,6 +99,15 @@ export interface ErrorEventData {
   message: string;
   code: string;
   details?: string;
+}
+
+// 9. Token使用情况事件数据
+export interface TokenUsageEventData {
+  currentTokenCount: number;
+  tokenLimit: number;
+  remainingPercentage: number;
+  remainingTokens: number;
+  model: string;
 }
 
 // 8. 工作区事件数据
@@ -218,6 +229,26 @@ export class StreamingEventFactory {
       timestamp: new Date().toISOString()
     };
   }
+
+  static createTokenUsageEvent(
+    currentTokenCount: number,
+    tokenLimit: number,
+    remainingPercentage: number,
+    remainingTokens: number,
+    model: string
+  ): StreamingEvent {
+    return {
+      type: 'token_usage',
+      data: {
+        currentTokenCount,
+        tokenLimit,
+        remainingPercentage,
+        remainingTokens,
+        model
+      },
+      timestamp: new Date().toISOString()
+    };
+  }
 }
 
 // 事件验证函数
@@ -266,4 +297,8 @@ export function isErrorEvent(event: StreamingEvent): event is StreamingEvent & {
 
 export function isHeartBeatEvent(event: StreamingEvent): event is StreamingEvent & { data: HeartBeatEventData } {
   return event.type === 'heart_beat';
+}
+
+export function isTokenUsageEvent(event: StreamingEvent): event is StreamingEvent & { data: TokenUsageEventData } {
+  return event.type === 'token_usage';
 } 

@@ -85,6 +85,9 @@ struct MessageInputView: View {
                 
                 Spacer()
                 
+                // Token使用情况显示
+                TokenUsageView()
+                
                 // 右边发送/取消按钮
                 if chatService.isLoading {
                     Button(action: {

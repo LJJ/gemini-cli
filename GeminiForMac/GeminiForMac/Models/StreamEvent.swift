@@ -7,9 +7,6 @@
 
 import Foundation
 
-// 导入错误代码定义
-// 注意：ErrorCode 定义在 ErrorCode.swift 文件中
-
 // MARK: - 标准化流式事件定义
 // 与后端 API 规范完全一致
 
@@ -67,6 +64,9 @@ struct StreamEvent: Codable {
         case .heartBeat:
             let heartBeatData = try container.decode(HeartBeatEventData.self, forKey: .data)
             self.data = .heartBeat(heartBeatData)
+        case .tokenUsage:
+            let tokenUsageData = try container.decode(TokenUsageEventData.self, forKey: .data)
+            self.data = .tokenUsage(tokenUsageData)
         }
     }
     
@@ -99,6 +99,8 @@ struct StreamEvent: Codable {
             try container.encode(errorData, forKey: .data)
         case .heartBeat(let heartBeatData):
             try container.encode(heartBeatData, forKey: .data)
+        case .tokenUsage(let tokenUsageData):
+            try container.encode(tokenUsageData, forKey: .data)
         }
     }
     
@@ -119,6 +121,7 @@ enum EventType: String, Codable {
     case heartBeat = "heart_beat"
     case complete = "complete"
     case error = "error"
+    case tokenUsage = "token_usage"
 }
 
 // 事件数据联合类型
@@ -133,6 +136,7 @@ enum EventData {
     case heartBeat(HeartBeatEventData)
     case complete(CompleteEventData)
     case error(ErrorEventData)
+    case tokenUsage(TokenUsageEventData)
 }
 
 // MARK: - 具体事件数据结构
@@ -257,6 +261,15 @@ struct HeartBeatEventData: Codable {
     let timestamp: String
 }
 
+// 11. Token使用情况事件数据
+struct TokenUsageEventData: Codable {
+    let currentTokenCount: Int
+    let tokenLimit: Int
+    let remainingPercentage: Int
+    let remainingTokens: Int
+    let model: String
+}
+
 // MARK: - 事件解析工具
 
 extension StreamEvent {
@@ -294,4 +307,5 @@ extension StreamEvent {
     var isHeartBeat: Bool { type == .heartBeat }
     var isComplete: Bool { type == .complete }
     var isError: Bool { type == .error }
+    var isTokenUsage: Bool { type == .tokenUsage }
 } 

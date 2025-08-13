@@ -25,6 +25,9 @@ class ChatService: ObservableObject {
     @Published var currentWorkspace: String = ""
     @Published var currentPath: String = ""
     
+    // Token使用情况信息
+    @Published var contextRemainingPercentage: Double = 1.0 // 0.0-1.0 的小数
+    
     // 工具确认队列
     private var toolConfirmationQueue: [ToolConfirmationEvent] = []
     private var isProcessingConfirmation = false
@@ -182,6 +185,17 @@ class ChatService: ObservableObject {
             // 心跳事件 - 客户端不需要处理，仅用于保持连接
             // 可以在这里添加调试日志，但通常不需要任何处理
             break
+            
+        case .tokenUsage(let data):
+            // 处理token使用情况事件 - 更新百分比
+            contextRemainingPercentage = Double(data.remainingPercentage) / 100.0
+            
+            // 更新状态消息
+            statusMessage = String(format: String(localized: "📊 %@ - %d%% context remaining (%d/%d tokens)"), 
+                                 data.model, 
+                                 data.remainingPercentage, 
+                                 data.currentTokenCount, 
+                                 data.tokenLimit)
         }
     }
     

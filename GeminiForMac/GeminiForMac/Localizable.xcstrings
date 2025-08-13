@@ -17,6 +17,9 @@
     "%lld" : {
 
     },
+    "%lld%%" : {
+
+    },
     "⚙️ 需要配置 Google Cloud Project，请在弹窗中完成设置" : {
       "localizations" : {
         "en" : {
@@ -80,6 +83,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "💭 **%@**\n%@"
+          }
+        }
+      }
+    },
+    "📊 %@ - %d%% context remaining (%d/%d tokens)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "📊 %1$@ - %2$d%% context remaining (%3$d/%4$d tokens)"
           }
         }
       }
@@ -269,6 +282,9 @@
           }
         }
       }
+    },
+    "context remaining" : {
+
     },
     "Gemini" : {
       "localizations" : {

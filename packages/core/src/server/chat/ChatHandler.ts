@@ -54,7 +54,8 @@ export class ChatHandler {
   public async handleStreamingChat(
     message: string, 
     filePaths: string[] = [],
-    res: express.Response
+    res: express.Response,
+    tokenUpdateCallback?: (inputTokenCount: number) => void
   ): Promise<void> {
     try {
       console.log('=== 开始流式聊天处理 ===');
@@ -97,7 +98,7 @@ export class ChatHandler {
       this.abortController = new AbortController();
       
       // 处理流式响应（可能包含多轮对话）
-      await this.processConversationWithTools(fullMessage, res);
+      await this.processConversationWithTools(fullMessage, res, tokenUpdateCallback);
       
       // 发送完成事件
       this.streamingEventService.sendCompleteEvent(res);
@@ -136,11 +137,15 @@ export class ChatHandler {
     }
   }
 
-  private async processConversationWithTools(message: string, res: express.Response): Promise<void> {
+  private async processConversationWithTools(
+    message: string, 
+    res: express.Response,
+    tokenUpdateCallback?: (inputTokenCount: number) => void
+  ): Promise<void> {
     const messageParts = [{ text: message }];
     
     // 处理初始消息
-    await this.processStreamEvents(messageParts, res);
+    await this.processStreamEvents(messageParts, res, tokenUpdateCallback);
     
     // 处理工具调用结果的循环
     await this.processToolCallResults(res);
@@ -164,7 +169,11 @@ export class ChatHandler {
     }
   }
 
-  private async processStreamEvents(messageParts: any[], res: express.Response): Promise<void> {
+  private async processStreamEvents(
+    messageParts: any[], 
+    res: express.Response,
+    tokenUpdateCallback?: (inputTokenCount: number) => void
+  ): Promise<void> {
     if (!this.currentTurn || !this.abortController) {
       throw createError(ErrorCode.TURN_NOT_INITIALIZED);
     }
@@ -235,6 +244,35 @@ export class ChatHandler {
           
         case GeminiEventType.ChatCompressed:
           console.log('聊天历史被压缩:', event.value);
+          break;
+          
+        case GeminiEventType.Finished:
+          console.log('聊天完成，原因:', event.value);
+          // 获取token使用情况
+          if (tokenUpdateCallback && this.currentTurn) {
+            const debugResponses = this.currentTurn.getDebugResponses();
+            console.log('Finished事件 - debugResponses数量:', debugResponses.length);
+            if (debugResponses.length > 0) {
+              const lastResponse = debugResponses[debugResponses.length - 1];
+              const usageMetadata = lastResponse.usageMetadata;
+              console.log('Finished事件 - usageMetadata:', usageMetadata);
+              if (usageMetadata?.promptTokenCount) {
+                console.log('Token使用情况:', {
+                  inputTokenCount: usageMetadata.promptTokenCount,
+                  outputTokenCount: usageMetadata.candidatesTokenCount,
+                  totalTokenCount: usageMetadata.totalTokenCount
+                });
+                console.log('调用tokenUpdateCallback');
+                tokenUpdateCallback(usageMetadata.promptTokenCount);
+              } else {
+                console.log('usageMetadata中没有promptTokenCount');
+              }
+            } else {
+              console.log('debugResponses为空');
+            }
+          } else {
+            console.log('tokenUpdateCallback或currentTurn不存在');
+          }
           break;
       }
     }
