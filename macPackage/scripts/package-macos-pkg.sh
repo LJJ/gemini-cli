@@ -196,10 +196,16 @@ mkdir -p "$SERVER_TEMPLATE_DIR"
 cp -R "$PROJECT_ROOT/packages/core/dist/"* "$SERVER_TEMPLATE_DIR/"
 cp "$PROJECT_ROOT/packages/core/package.json" "$SERVER_TEMPLATE_DIR/"
 
-# 复制 node_modules 依赖（优先使用根目录的 node_modules）
+# 复制 node_modules 依赖（先复制根目录，然后用核心包覆盖，确保包含所有依赖）
 if [ -d "$PROJECT_ROOT/node_modules" ]; then
     log_info "复制根目录 node_modules 依赖..."
     cp -R "$PROJECT_ROOT/node_modules" "$SERVER_TEMPLATE_DIR/"
+    
+    # 如果核心包有 node_modules，用核心包的文件覆盖根目录的文件
+    if [ -d "$PROJECT_ROOT/packages/core/node_modules" ]; then
+        log_info "用核心包 node_modules 覆盖根目录文件..."
+        cp -R "$PROJECT_ROOT/packages/core/node_modules/"* "$SERVER_TEMPLATE_DIR/node_modules/" 2>/dev/null || true
+    fi
 elif [ -d "$PROJECT_ROOT/packages/core/node_modules" ]; then
     log_info "复制核心包 node_modules 依赖..."
     cp -R "$PROJECT_ROOT/packages/core/node_modules" "$SERVER_TEMPLATE_DIR/"
@@ -229,7 +235,7 @@ log_success "构建产物验证通过"
 
 # 验证关键依赖
 log_info "验证关键依赖..."
-REQUIRED_DEPS=("express" "ws" "@google/genai" "simple-git")
+REQUIRED_DEPS=("express" "ws" "@google/genai" "simple-git" "fdir" "fzf" "picomatch" "glob" "ignore" "micromatch")
 MISSING_DEPS=()
 
 for dep in "${REQUIRED_DEPS[@]}"; do
