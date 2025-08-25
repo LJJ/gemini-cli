@@ -141,7 +141,7 @@ export class AuthService implements ConfigurableService {
       console.log('正在恢复认证状态...');
       this.updateStatus(ServiceStatus.INITIALIZING, '正在恢复认证状态');
       
-      // 1. 首先尝试从配置文件恢复
+      // 只从配置文件恢复认证状态，不从环境变量加载
       const savedConfig = await this.configManager.loadConfig();
       if (savedConfig) {
         console.log('从配置文件恢复认证状态:', savedConfig.authType);
@@ -155,9 +155,9 @@ export class AuthService implements ConfigurableService {
         if (savedConfig.authType === AuthType.LOGIN_WITH_GOOGLE) {
           // OAuth需要验证凭据
           if (this.config) {
-          console.log('开始验证OAuth凭据有效性...');
-          this.isAuthenticated = await this.oauthManager.validateCredentials();
-          console.log('OAuth凭据验证结果:', this.isAuthenticated ? '成功' : '失败');
+            console.log('开始验证OAuth凭据有效性...');
+            this.isAuthenticated = await this.oauthManager.validateCredentials();
+            console.log('OAuth凭据验证结果:', this.isAuthenticated ? '成功' : '失败');
           } else {
             // 关键修复：没有Config对象时，创建临时Config进行OAuth验证
             console.log('没有Config对象，创建临时Config验证OAuth凭据...');
@@ -166,12 +166,12 @@ export class AuthService implements ConfigurableService {
             
             this.isAuthenticated = await this.oauthManager.validateCredentials();
             console.log('OAuth凭据验证结果:', this.isAuthenticated ? '成功' : '失败');
+          }
           
           if (!this.isAuthenticated) {
             console.log('⚠️ OAuth凭据验证失败，用户需要重新登录');
           } else {
             console.log('✅ OAuth凭据有效，认证状态已恢复');
-            }
           }
         } else {
           // API Key认证直接标记为已认证
@@ -179,9 +179,9 @@ export class AuthService implements ConfigurableService {
           console.log('✅ API Key认证状态已恢复');
         }
       } else {
-        // 2. 如果没有保存的配置，尝试从环境变量加载
-        console.log('没有保存的配置，尝试从环境变量加载');
-        this.loadFromEnvironment();
+        // 没有保存的配置，保持未认证状态
+        console.log('没有找到有效的认证配置，保持未认证状态');
+        this.isAuthenticated = false;
       }
 
       console.log('认证状态初始化完成:', {
@@ -533,18 +533,11 @@ export class AuthService implements ConfigurableService {
   }
 
   /**
-   * 从环境变量加载认证配置
+   * 从环境变量加载认证配置（已废弃，不再使用）
    */
   private loadFromEnvironment(): void {
-    const envConfig = this.validator.loadFromEnvironment();
-    
-    if (envConfig.authType) {
-      this.currentAuthType = envConfig.authType;
-      this.currentApiKey = envConfig.apiKey;
-      this.currentGoogleCloudProject = envConfig.googleCloudProject;
-      this.currentGoogleCloudLocation = envConfig.googleCloudLocation;
-      this.isAuthenticated = true;
-    }
+    console.log('⚠️ 环境变量认证已废弃，请使用配置文件认证');
+    // 不再从环境变量加载认证配置
   }
 
   /**

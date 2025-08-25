@@ -59,19 +59,30 @@ export class AuthConfigManager {
    */
   public async loadConfig(): Promise<AuthConfig | null> {
     try {
+      console.log('尝试加载认证配置文件:', this.configPath);
       const configData = await fs.readFile(this.configPath, 'utf-8');
+      console.log('配置文件内容:', configData);
+      
       const config = JSON.parse(configData);
+      console.log('解析后的配置:', config);
       
       if (this.isValidConfig(config)) {
-        console.log('成功加载认证配置:', config.authType);
+        console.log('✅ 成功加载认证配置:', config.authType);
         return config;
       } else {
-        console.warn('认证配置格式无效');
+        console.warn('❌ 认证配置格式无效');
+        console.warn('配置对象:', config);
+        console.warn('验证结果:', {
+          isObject: typeof config === 'object',
+          hasAuthType: !!config.authType,
+          authTypeValid: config.authType ? Object.values(AuthType).includes(config.authType) : false,
+          hasTimestamp: typeof config.timestamp === 'string'
+        });
         return null;
       }
     } catch (error) {
       // 文件不存在或格式错误
-      console.log('没有找到有效的认证配置');
+      console.log('❌ 没有找到有效的认证配置:', error instanceof Error ? error.message : error);
       return null;
     }
   }

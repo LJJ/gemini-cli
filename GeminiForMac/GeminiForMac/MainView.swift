@@ -13,11 +13,12 @@ struct MainView: View {
     @ObservedObject private var fileExplorerService = Container.shared.fileExplorerService.resolve()
     @StateObject private var authService = Container.shared.authService.resolve()
     @StateObject private var proxySettingsManager = ProxySettingsManager.shared
+    @State private var selectedSidebarTab: SidebarTab = .fileExplorer
     
     var body: some View {
         HSplitView {
-            // 文件浏览器
-            FileExplorerView().frame(minWidth: 200, idealWidth: 300, maxWidth: 500)
+            // 左侧边栏（文件浏览器/聊天历史）
+            SidebarView(selectedTab: $selectedSidebarTab)
             
             // 聊天界面
             VStack(spacing: 0) {
