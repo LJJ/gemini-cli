@@ -4,9 +4,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Config } from '../../config/config.js';
+import { Config, ApprovalMode } from '../../config/config.js';
 import type { ConfigParameters } from '../../config/config.js';
 import { EventEmitter } from 'events';
+import { DEFAULT_GEMINI_EMBEDDING_MODEL } from '../../config/models.js';
 import { AuthService } from '../../server/auth/AuthService.js';
 import { GeminiClient } from '../../core/client.js';
 // createToolRegistry 现在是 Config 类的方法
@@ -281,6 +282,22 @@ export class ConfigFactory {
           model: params.model || DEFAULT_GEMINI_FLASH_MODEL,
           proxy: params.proxy,
           eventEmitter: new EventEmitter(),
+          // 添加原版所需的完整配置参数
+          embeddingModel: DEFAULT_GEMINI_EMBEDDING_MODEL,
+          approvalMode: ApprovalMode.DEFAULT,
+          fullContext: false,
+          userMemory: '',
+          geminiMdFileCount: 0,
+          showMemoryUsage: false,
+          accessibility: { screenReader: false },
+          telemetry: { enabled: false },
+          usageStatisticsEnabled: false,
+          fileFiltering: {
+            respectGitIgnore: true,
+            respectGeminiIgnore: true,
+            enableRecursiveFileSearch: true,
+            disableFuzzySearch: false,
+          },
         };
       }
     } else {
@@ -293,6 +310,22 @@ export class ConfigFactory {
         model: params.model || DEFAULT_GEMINI_FLASH_MODEL,
         proxy: params.proxy,
         eventEmitter: new EventEmitter(),
+        // 添加原版所需的完整配置参数
+        embeddingModel: DEFAULT_GEMINI_EMBEDDING_MODEL,
+        approvalMode: ApprovalMode.DEFAULT,
+        fullContext: false,
+        userMemory: '',
+        geminiMdFileCount: 0,
+        showMemoryUsage: false,
+        accessibility: { screenReader: false },
+        telemetry: { enabled: false },
+        usageStatisticsEnabled: false,
+        fileFiltering: {
+          respectGitIgnore: true,
+          respectGeminiIgnore: true,
+          enableRecursiveFileSearch: true,
+          disableFuzzySearch: false,
+        },
       };
     }
 
@@ -302,7 +335,18 @@ export class ConfigFactory {
     console.log('ConfigFactory: 初始化Config对象');
     await config.initialize();
     
-    console.log('ConfigFactory: Config对象初始化完成（包含工具注册表）');
+    // 重要：初始化GeminiClient（使用AuthService的当前认证类型）
+    const authService = this.getOrCreateAuthService();
+    const authType = authService.getCurrentAuthType();
+    if (authType) {
+      console.log('ConfigFactory: 初始化GeminiClient，认证类型:', authType);
+      await config.refreshAuth(authType);
+      console.log('ConfigFactory: GeminiClient初始化完成');
+    } else {
+      console.log('⚠️ ConfigFactory: 没有有效的认证类型，跳过GeminiClient初始化');
+    }
+    
+    console.log('ConfigFactory: Config对象完全初始化完成');
     
     // 保存配置到缓存
     if (this.enableConfigCache) {

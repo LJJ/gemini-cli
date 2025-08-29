@@ -406,6 +406,13 @@ export class AuthService implements ConfigurableService {
     }
   }
 
+  /**
+   * 获取当前认证类型
+   */
+  public getCurrentAuthType(): AuthType | null {
+    return this.currentAuthType;
+  }
+
   public async handleAuthStatus(req: express.Request, res: express.Response) {
     try {
       // 如果当前没有认证状态，触发初始化（确保状态最新）
