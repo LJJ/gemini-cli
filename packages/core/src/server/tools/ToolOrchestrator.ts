@@ -5,9 +5,9 @@
  */
 
 import { Config } from '../../index.js';
-import { CoreToolScheduler, CompletedToolCall, ToolCall } from '../../core/coreToolScheduler.js';
-import { ToolCallRequestInfo } from '../../core/turn.js';
-import { ApprovalMode } from '../../config/config.js';
+import { CoreToolScheduler } from '../../core/coreToolScheduler.js';
+import type { CompletedToolCall, ToolCall } from '../../core/coreToolScheduler.js';
+import type { ToolCallRequestInfo } from '../../core/turn.js';
 import { ToolConfirmationOutcome } from '../../tools/tools.js';
 import express from 'express';
 import { StreamingEventService } from '../chat/StreamingEventService.js';
@@ -34,15 +34,14 @@ export class ToolOrchestrator {
   ) {}
 
   public async initializeScheduler(config: Config): Promise<void> {
-    const toolRegistry = await config.getToolRegistry();
+    // const toolRegistry = await config.getToolRegistry();
     
     this.toolScheduler = new CoreToolScheduler({
-      toolRegistry: Promise.resolve(toolRegistry),
+      config,
       onAllToolCallsComplete: this.handleAllToolCallsComplete.bind(this),
       onToolCallsUpdate: this.handleToolCallsUpdate.bind(this),
       outputUpdateHandler: this.handleOutputUpdate.bind(this),
       getPreferredEditor: () => 'vscode',
-      config,
       onEditorClose: () => {
         // 编辑器关闭时的处理逻辑
         console.log('编辑器已关闭');
@@ -175,7 +174,7 @@ export class ToolOrchestrator {
               this.currentResponse,
               toolCall.request.callId,
               toolCall.request.name,
-              typeof toolCall.request.args?.command === 'string' ? toolCall.request.args.command : undefined,
+              typeof toolCall.request.args?.['command'] === 'string' ? toolCall.request.args['command'] : undefined,
               toolCall.request.args
             );
             // 记录已发送的确认事件

@@ -4,13 +4,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Turn, ServerGeminiStreamEvent, GeminiEventType } from '../../core/turn.js';
-import { ToolCallRequestInfo } from '../../core/turn.js';
+import { Turn, GeminiEventType } from '../../core/turn.js';
+import type { ToolCallRequestInfo } from '../../core/turn.js';
 import express from 'express';
 import { StreamingEventService } from './StreamingEventService.js';
 import { ToolOrchestrator } from '../tools/ToolOrchestrator.js';
-import { ClientManager } from '../core/ClientManager.js';
-import { CompletedToolCall } from '../../core/coreToolScheduler.js';
+// import { ClientManager } from '../core/ClientManager.js';
+import type { CompletedToolCall } from '../../core/coreToolScheduler.js';
 import { ErrorCode, createError } from '../types/error-codes.js';
 import { configFactory } from '../core/ConfigFactory.js';
 
@@ -36,7 +36,7 @@ export class ChatHandler {
   private waitingForToolCompletion = false;
 
   constructor(
-    private clientManager: ClientManager,
+    // private clientManager: ClientManager,
     private streamingEventService: StreamingEventService,
     private toolOrchestrator: ToolOrchestrator
   ) {}

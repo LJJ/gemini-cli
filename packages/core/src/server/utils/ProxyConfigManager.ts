@@ -8,8 +8,8 @@ import { dirname } from 'path';
 import { mkdirSync } from 'fs';
 import { homedir } from 'os';
 import { join } from 'path';
-import { HttpsProxyAgent } from 'https-proxy-agent';
-import { SocksProxyAgent } from 'socks-proxy-agent';
+// import { HttpsProxyAgent } from 'https-proxy-agent';
+// import { SocksProxyAgent } from 'socks-proxy-agent';
 
 export interface ProxyConfig {
   enabled: boolean;
@@ -103,22 +103,22 @@ export class ProxyConfigManager {
       
       // 记录设置前的环境变量状态
       console.log('ProxyConfigManager: 设置前的环境变量状态:');
-      console.log('  http_proxy:', process.env.http_proxy);
-      console.log('  https_proxy:', process.env.https_proxy);
-      console.log('  HTTP_PROXY:', process.env.HTTP_PROXY);
-      console.log('  HTTPS_PROXY:', process.env.HTTPS_PROXY);
+      console.log('  http_proxy:', process.env['http_proxy']);
+      console.log('  https_proxy:', process.env['https_proxy']);
+      console.log('  HTTP_PROXY:', process.env['HTTP_PROXY']);
+      console.log('  HTTPS_PROXY:', process.env['HTTPS_PROXY']);
       
-      process.env.http_proxy = proxyUrl;
-      process.env.https_proxy = proxyUrl;
-      process.env.HTTP_PROXY = proxyUrl;
-      process.env.HTTPS_PROXY = proxyUrl;
+      process.env['http_proxy'] = proxyUrl;
+      process.env['https_proxy'] = proxyUrl;
+      process.env['HTTP_PROXY'] = proxyUrl;
+      process.env['HTTPS_PROXY'] = proxyUrl;
       
       // 记录设置后的环境变量状态
       console.log('ProxyConfigManager: 设置后的环境变量状态:');
-      console.log('  http_proxy:', process.env.http_proxy);
-      console.log('  https_proxy:', process.env.https_proxy);
-      console.log('  HTTP_PROXY:', process.env.HTTP_PROXY);
-      console.log('  HTTPS_PROXY:', process.env.HTTPS_PROXY);
+      console.log('  http_proxy:', process.env['http_proxy']);
+      console.log('  https_proxy:', process.env['https_proxy']);
+      console.log('  HTTP_PROXY:', process.env['HTTP_PROXY']);
+      console.log('  HTTPS_PROXY:', process.env['HTTPS_PROXY']);
       
       console.log(`ProxyConfigManager: 代理已启用 ${proxyUrl}`);
     } else {
@@ -126,22 +126,22 @@ export class ProxyConfigManager {
       
       // 记录删除前的环境变量状态
       console.log('ProxyConfigManager: 删除前的环境变量状态:');
-      console.log('  http_proxy:', process.env.http_proxy);
-      console.log('  https_proxy:', process.env.https_proxy);
-      console.log('  HTTP_PROXY:', process.env.HTTP_PROXY);
-      console.log('  HTTPS_PROXY:', process.env.HTTPS_PROXY);
+      console.log('  http_proxy:', process.env['http_proxy']);
+      console.log('  https_proxy:', process.env['https_proxy']);
+      console.log('  HTTP_PROXY:', process.env['HTTP_PROXY']);
+      console.log('  HTTPS_PROXY:', process.env['HTTPS_PROXY']);
       
-      delete process.env.http_proxy;
-      delete process.env.https_proxy;
-      delete process.env.HTTP_PROXY;
-      delete process.env.HTTPS_PROXY;
+      delete process.env['http_proxy'];
+      delete process.env['https_proxy'];
+      delete process.env['HTTP_PROXY'];
+      delete process.env['HTTPS_PROXY'];
       
       // 记录删除后的环境变量状态
       console.log('ProxyConfigManager: 删除后的环境变量状态:');
-      console.log('  http_proxy:', process.env.http_proxy);
-      console.log('  https_proxy:', process.env.https_proxy);
-      console.log('  HTTP_PROXY:', process.env.HTTP_PROXY);
-      console.log('  HTTPS_PROXY:', process.env.HTTPS_PROXY);
+      console.log('  http_proxy:', process.env['http_proxy']);
+      console.log('  https_proxy:', process.env['https_proxy']);
+      console.log('  HTTP_PROXY:', process.env['HTTP_PROXY']);
+      console.log('  HTTPS_PROXY:', process.env['HTTPS_PROXY']);
       
       console.log('ProxyConfigManager: 代理已禁用');
     }

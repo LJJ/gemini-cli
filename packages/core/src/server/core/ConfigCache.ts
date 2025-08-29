@@ -7,7 +7,8 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as os from 'node:os';
-import { Config, ConfigParameters } from '../../config/config.js';
+import { Config } from '../../config/config.js';
+import type { ConfigParameters } from '../../config/config.js';
 
 /**
  * 可序列化的配置参数（用于缓存）

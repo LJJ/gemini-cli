@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { BaseResponse, ErrorResponse } from '../types/api-types.js';
+import type { BaseResponse, ErrorResponse } from '../types/api-types.js';
 import { ErrorCode, ERROR_TO_HTTP_STATUS } from '../types/error-codes.js';
 
 /**

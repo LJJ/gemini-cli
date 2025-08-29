@@ -11,9 +11,11 @@ import { AuthConfigManager } from './AuthConfigManager.js';
 import { OAuthManager } from './OAuthManager.js';
 import { AuthValidator } from './AuthValidator.js';
 import { DEFAULT_GEMINI_FLASH_MODEL } from '../../config/models.js';
-import { Config, ConfigParameters } from '../../config/config.js';
+import { Config } from '../../config/config.js';
+import type { ConfigParameters } from '../../config/config.js';
 import { ErrorCode, createError } from '../types/error-codes.js';
-import { ConfigurableService, ServiceStatus, ServiceStatusInfo } from '../types/service-interfaces.js';
+import { ServiceStatus } from '../types/service-interfaces.js';
+import type { ConfigurableService, ServiceStatusInfo } from '../types/service-interfaces.js';
 import { configFactory } from '../core/ConfigFactory.js';
 import { ProjectService } from '../project/ProjectService.js';
 
@@ -252,11 +254,11 @@ export class AuthService implements ConfigurableService {
         this.isAuthenticated = true; // API Key 认证直接完成
       }
 
-      res.json(ResponseFactory.authConfig('认证配置已设置'));
+      return res.json(ResponseFactory.authConfig('认证配置已设置'));
 
     } catch (error) {
       console.error('Error in handleAuthConfig:', error);
-      res.status(500).json(ResponseFactory.internalError(error instanceof Error ? error.message : '设置认证配置失败'));
+      return res.status(500).json(ResponseFactory.internalError(error instanceof Error ? error.message : '设置认证配置失败'));
     }
   }
 
@@ -279,17 +281,17 @@ export class AuthService implements ConfigurableService {
         await this.oauthManager.initializeOAuthClient();
         this.isAuthenticated = true;
         
-        res.json(ResponseFactory.authConfig('Google 登录成功'));
+        return res.json(ResponseFactory.authConfig('Google 登录成功'));
       } catch (oauthError) {
         console.error('Google OAuth 错误:', oauthError);
         
         if (oauthError instanceof Error && this.oauthManager.isNetworkError(oauthError)) {
-          res.status(500).json(ResponseFactory.errorWithCode(
+          return res.status(500).json(ResponseFactory.errorWithCode(
             ErrorCode.NETWORK_ERROR, 
             '网络连接超时或缓存凭据过期，已自动清理缓存。请检查网络连接后重试。'
           ));
         } else {
-          res.status(500).json(ResponseFactory.errorWithCode(
+          return res.status(500).json(ResponseFactory.errorWithCode(
             ErrorCode.AUTH_CONFIG_FAILED, 
             'Google 登录失败，请检查网络连接或尝试使用 API Key 认证方式'
           ));
@@ -298,7 +300,7 @@ export class AuthService implements ConfigurableService {
 
     } catch (error) {
       console.error('Error in handleGoogleLogin:', error);
-      res.status(500).json(ResponseFactory.internalError(
+      return res.status(500).json(ResponseFactory.internalError(
         error instanceof Error ? error.message : '启动 Google 登录失败'
       ));
     }
@@ -322,12 +324,12 @@ export class AuthService implements ConfigurableService {
       try {
         const authUrl = await this.oauthManager.generateAuthUrl();
         
-        res.json(ResponseFactory.success({
+        return res.json(ResponseFactory.success({
           authUrl: authUrl
         }, '授权 URL 生成成功'));
       } catch (oauthError) {
         console.error('生成授权 URL 错误:', oauthError);
-        res.status(500).json(ResponseFactory.errorWithCode(
+        return res.status(500).json(ResponseFactory.errorWithCode(
           ErrorCode.AUTH_CONFIG_FAILED, 
           '生成授权 URL 失败'
         ));
@@ -335,7 +337,7 @@ export class AuthService implements ConfigurableService {
 
     } catch (error) {
       console.error('Error in handleGoogleAuthUrl:', error);
-      res.status(500).json(ResponseFactory.internalError(
+      return res.status(500).json(ResponseFactory.internalError(
         error instanceof Error ? error.message : '生成授权 URL 失败'
       ));
     }
@@ -377,19 +379,19 @@ export class AuthService implements ConfigurableService {
         const response = ResponseFactory.authConfig('Google 登录成功');
         console.log('返回响应:', response);
         
-        res.json(response);
+        return res.json(response);
       } catch (oauthError) {
         console.error('Google OAuth 错误:', oauthError);
         console.error('错误类型:', typeof oauthError);
         console.error('错误消息:', oauthError instanceof Error ? oauthError.message : 'Unknown error');
         
         if (oauthError instanceof Error && this.oauthManager.isNetworkError(oauthError)) {
-          res.status(500).json(ResponseFactory.errorWithCode(
+          return res.status(500).json(ResponseFactory.errorWithCode(
             ErrorCode.NETWORK_ERROR, 
             '网络连接超时，请检查网络连接后重试。'
           ));
         } else {
-          res.status(500).json(ResponseFactory.errorWithCode(
+          return res.status(500).json(ResponseFactory.errorWithCode(
             ErrorCode.AUTH_CONFIG_FAILED, 
             'Google 登录失败，请检查授权码是否正确'
           ));
@@ -398,7 +400,7 @@ export class AuthService implements ConfigurableService {
 
     } catch (error) {
       console.error('Error in handleGoogleAuthCode:', error);
-      res.status(500).json(ResponseFactory.internalError(
+      return res.status(500).json(ResponseFactory.internalError(
         error instanceof Error ? error.message : '处理授权码失败'
       ));
     }
@@ -411,7 +413,7 @@ export class AuthService implements ConfigurableService {
         await this.initializeAuthState();
       }
 
-      res.json(ResponseFactory.authStatus({
+      return res.json(ResponseFactory.authStatus({
         isAuthenticated: this.isAuthenticated,
         authType: this.currentAuthType,
         hasApiKey: !!this.currentApiKey,
@@ -419,7 +421,7 @@ export class AuthService implements ConfigurableService {
       }));
     } catch (error) {
       console.error('Error in handleAuthStatus:', error);
-      res.status(500).json(ResponseFactory.internalError(error instanceof Error ? error.message : '查询认证状态失败'));
+      return res.status(500).json(ResponseFactory.internalError(error instanceof Error ? error.message : '查询认证状态失败'));
     }
   }
 
@@ -439,10 +441,10 @@ export class AuthService implements ConfigurableService {
       // 清除聊天相关服务状态
       await this.cleanupChatServices();
       
-      res.json(ResponseFactory.authConfig('登出成功，所有认证凭据和聊天服务已清除'));
+      return res.json(ResponseFactory.authConfig('登出成功，所有认证凭据和聊天服务已清除'));
     } catch (error) {
       console.error('Error in handleLogout:', error);
-      res.status(500).json(ResponseFactory.internalError(error instanceof Error ? error.message : '登出失败'));
+      return res.status(500).json(ResponseFactory.internalError(error instanceof Error ? error.message : '登出失败'));
     }
   }
 
@@ -486,10 +488,10 @@ export class AuthService implements ConfigurableService {
       // 清除 OAuth 凭据
       await this.clearAllAuthCredentials();
       
-      res.json(ResponseFactory.authConfig('认证配置已清除，可以重新设置认证方式'));
+      return res.json(ResponseFactory.authConfig('认证配置已清除，可以重新设置认证方式'));
     } catch (error) {
       console.error('Error in handleClearAuth:', error);
-      res.status(500).json(ResponseFactory.internalError(error instanceof Error ? error.message : '清除认证配置失败'));
+      return res.status(500).json(ResponseFactory.internalError(error instanceof Error ? error.message : '清除认证配置失败'));
     }
   }
 
@@ -515,10 +517,8 @@ export class AuthService implements ConfigurableService {
       this.currentAuthType
     );
 
-    // 将创建的配置设置到 Config 对象中，确保模型切换生效
-    if (this.config) {
-      this.config.setContentGeneratorConfig(config);
-    }
+    // 注意：新版本中 Config 类不再有 setContentGeneratorConfig 方法
+    // 配置会在下次调用时自动重新创建
 
     // 如果禁用 CodeAssist，移除相关配置
     if (disableCodeAssist) {
@@ -535,10 +535,12 @@ export class AuthService implements ConfigurableService {
   /**
    * 从环境变量加载认证配置（已废弃，不再使用）
    */
+  /* 已废弃的方法，不再使用
   private loadFromEnvironment(): void {
     console.log('⚠️ 环境变量认证已废弃，请使用配置文件认证');
     // 不再从环境变量加载认证配置
   }
+  */
 
   /**
    * 清除认证状态

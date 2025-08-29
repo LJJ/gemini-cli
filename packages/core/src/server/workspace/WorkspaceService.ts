@@ -45,7 +45,7 @@ export class WorkspaceService {
       try {
         await this.clientManager.getOrCreateClient(effectiveWorkspacePath);
         
-        res.json(ResponseFactory.success({
+        return res.json(ResponseFactory.success({
           workspacePath: effectiveWorkspacePath,
           initialized: true
         }, '工作区初始化成功'));
@@ -55,7 +55,7 @@ export class WorkspaceService {
         const errorCode = clientError instanceof Error && (clientError as any).code ? (clientError as any).code : ErrorCode.INTERNAL_ERROR;
         const errorMessage = clientError instanceof Error ? clientError.message : 'Unknown error';
         
-        res.status(500).json(ResponseFactory.errorWithCode(errorCode, errorMessage));
+        return res.status(500).json(ResponseFactory.errorWithCode(errorCode, errorMessage));
       }
       
     } catch (error) {
@@ -64,7 +64,7 @@ export class WorkspaceService {
       const errorCode = error instanceof Error && (error as any).code ? (error as any).code : ErrorCode.INTERNAL_ERROR;
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       
-      res.status(500).json(ResponseFactory.errorWithCode(errorCode, errorMessage));
+      return res.status(500).json(ResponseFactory.errorWithCode(errorCode, errorMessage));
     }
   }
 
@@ -76,7 +76,7 @@ export class WorkspaceService {
       const currentWorkspace = this.clientManager.getCurrentWorkspace();
       const hasActiveClient = this.clientManager.hasActiveClient();
       
-      res.json(ResponseFactory.success({
+      return res.json(ResponseFactory.success({
         currentWorkspace,
         hasActiveClient,
         initialized: hasActiveClient
@@ -88,7 +88,7 @@ export class WorkspaceService {
       const errorCode = error instanceof Error && (error as any).code ? (error as any).code : ErrorCode.INTERNAL_ERROR;
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       
-      res.status(500).json(ResponseFactory.errorWithCode(errorCode, errorMessage));
+      return res.status(500).json(ResponseFactory.errorWithCode(errorCode, errorMessage));
     }
   }
 
@@ -125,7 +125,7 @@ export class WorkspaceService {
       try {
         await this.clientManager.getOrCreateClient(effectiveWorkspacePath);
         
-        res.json(ResponseFactory.success({
+        return res.json(ResponseFactory.success({
           workspacePath: effectiveWorkspacePath,
           switched: true,
           previousWorkspace: currentWorkspace
@@ -136,7 +136,7 @@ export class WorkspaceService {
         const errorCode = clientError instanceof Error && (clientError as any).code ? (clientError as any).code : ErrorCode.INTERNAL_ERROR;
         const errorMessage = clientError instanceof Error ? clientError.message : 'Unknown error';
         
-        res.status(500).json(ResponseFactory.errorWithCode(errorCode, errorMessage));
+        return res.status(500).json(ResponseFactory.errorWithCode(errorCode, errorMessage));
       }
       
     } catch (error) {
@@ -145,7 +145,7 @@ export class WorkspaceService {
       const errorCode = error instanceof Error && (error as any).code ? (error as any).code : ErrorCode.INTERNAL_ERROR;
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       
-      res.status(500).json(ResponseFactory.errorWithCode(errorCode, errorMessage));
+      return res.status(500).json(ResponseFactory.errorWithCode(errorCode, errorMessage));
     }
   }
 

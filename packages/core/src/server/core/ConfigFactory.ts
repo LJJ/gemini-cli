@@ -4,10 +4,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Config, ConfigParameters } from '../../config/config.js';
+import { Config } from '../../config/config.js';
+import type { ConfigParameters } from '../../config/config.js';
+import { EventEmitter } from 'events';
 import { AuthService } from '../../server/auth/AuthService.js';
 import { GeminiClient } from '../../core/client.js';
-import { createToolRegistry } from '../../config/config.js';
+// createToolRegistry 现在是 Config 类的方法
 import { DEFAULT_GEMINI_FLASH_MODEL } from '../../config/models.js';
 import { ErrorCode, createError } from '../../server/types/error-codes.js';
 import { ConfigCache } from './ConfigCache.js';
@@ -278,6 +280,7 @@ export class ConfigFactory {
           cwd: params.cwd || params.targetDir,
           model: params.model || DEFAULT_GEMINI_FLASH_MODEL,
           proxy: params.proxy,
+          eventEmitter: new EventEmitter(),
         };
       }
     } else {
@@ -289,14 +292,17 @@ export class ConfigFactory {
         cwd: params.cwd || params.targetDir,
         model: params.model || DEFAULT_GEMINI_FLASH_MODEL,
         proxy: params.proxy,
+        eventEmitter: new EventEmitter(),
       };
     }
 
     const config = new Config(configParams);
     
-    // 关键：立即初始化工具注册表（遵循原始逻辑）
-    console.log('ConfigFactory: 初始化工具注册表');
-    (config as any).toolRegistry = await createToolRegistry(config);
+    // 关键：调用initialize()初始化Config对象（包括promptRegistry和toolRegistry）
+    console.log('ConfigFactory: 初始化Config对象');
+    await config.initialize();
+    
+    console.log('ConfigFactory: Config对象初始化完成（包含工具注册表）');
     
     // 保存配置到缓存
     if (this.enableConfigCache) {

@@ -10,7 +10,7 @@ import { ClientManager } from './ClientManager.js';
 import { StreamingEventService } from '../chat/StreamingEventService.js';
 import { ToolOrchestrator } from '../tools/ToolOrchestrator.js';
 import { ChatHandler } from '../chat/ChatHandler.js';
-import { ToolConfirmationRequest } from '../types/api-types.js';
+import type { ToolConfirmationRequest } from '../types/api-types.js';
 import { ToolConfirmationOutcome } from '../../tools/tools.js';
 import { ErrorCode } from '../types/error-codes.js';
 import { configFactory } from './ConfigFactory.js';
@@ -59,7 +59,6 @@ export class GeminiService {
     this.streamingEventService = new StreamingEventService();
     this.toolOrchestrator = new ToolOrchestrator(this.streamingEventService);
     this.chatHandler = new ChatHandler(
-      this.clientManager,
       this.streamingEventService,
       this.toolOrchestrator
     );
@@ -243,12 +242,12 @@ export class GeminiService {
       const abortController = new AbortController();
       await this.toolOrchestrator.handleToolConfirmation(callId, outcome as ToolConfirmationOutcome, abortController.signal);
       
-      res.json(ResponseFactory.toolConfirmation('Tool confirmation processed successfully'));
+      return res.json(ResponseFactory.toolConfirmation('Tool confirmation processed successfully'));
       
     } catch (error) {
       console.error('Error in handleToolConfirmation:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      res.status(500).json(ResponseFactory.internalError(errorMessage));
+      return res.status(500).json(ResponseFactory.internalError(errorMessage));
     }
   }
 
@@ -281,11 +280,11 @@ export class GeminiService {
       // 取消工具编排器中的操作
       this.toolOrchestrator.cancelAllOperations();
       
-      res.json(ResponseFactory.success({ message: 'Chat cancelled successfully' }));
+      return res.json(ResponseFactory.success({ message: 'Chat cancelled successfully' }));
     } catch (error) {
       console.error('Error in handleCancelChat:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      res.status(500).json(ResponseFactory.internalError(errorMessage));
+      return res.status(500).json(ResponseFactory.internalError(errorMessage));
     }
   }
 
@@ -327,7 +326,7 @@ export class GeminiService {
         })
       );
       
-      res.json(ResponseFactory.modelStatus({
+      return res.json(ResponseFactory.modelStatus({
         currentModel: currentModel,
         supportedModels: supportedModels,
         modelStatuses: modelStatuses
@@ -336,7 +335,7 @@ export class GeminiService {
     } catch (error) {
       console.error('Error in handleModelStatus:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      res.status(500).json(ResponseFactory.internalError(errorMessage));
+      return res.status(500).json(ResponseFactory.internalError(errorMessage));
     }
   }
 
@@ -394,7 +393,7 @@ export class GeminiService {
       const authService = configFactory.getAuthService();
       const modelAvailability = await this.checkModelAvailability(model, authService);
       
-      res.json(ResponseFactory.modelSwitch({
+      return res.json(ResponseFactory.modelSwitch({
         name: model,
         previousModel: currentModel,
         switched: true,
@@ -406,7 +405,7 @@ export class GeminiService {
     } catch (error) {
       console.error('Error in handleModelSwitch:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      res.status(500).json(ResponseFactory.internalError(errorMessage));
+      return res.status(500).json(ResponseFactory.internalError(errorMessage));
     }
   }
 
@@ -434,8 +433,9 @@ export class GeminiService {
         const contentGeneratorConfig = await authService.getContentGeneratorConfig();
         
         if (contentGeneratorConfig?.apiKey) {
-          const { getEffectiveModel } = await import('../../core/modelCheck.js');
-          const effectiveModel = await getEffectiveModel(contentGeneratorConfig.apiKey, model);
+          // modelCheck.js已被删除，使用默认模型选择逻辑
+          const getEffectiveModel = (model: string) => model;
+          const effectiveModel = getEffectiveModel(model);
           
           if (effectiveModel === model) {
             return {

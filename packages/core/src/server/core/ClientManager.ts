@@ -7,9 +7,10 @@
 import { GeminiClient } from '../../core/client.js';
 import { AuthService } from '../auth/AuthService.js';
 import { DEFAULT_GEMINI_FLASH_MODEL } from '../../config/models.js';
-import { ErrorCode, createError } from '../types/error-codes.js';
-import { configFactory, WorkspaceServiceContainer, FactoryConfigParams } from './ConfigFactory.js';
-import { WorkspaceAwareService } from '../types/service-interfaces.js';
+// import { ErrorCode, createError } from '../types/error-codes.js';
+import { configFactory } from './ConfigFactory.js';
+import type { WorkspaceServiceContainer, FactoryConfigParams } from './ConfigFactory.js';
+import type { WorkspaceAwareService } from '../types/service-interfaces.js';
 import * as path from 'path';
 
 /**
@@ -153,7 +154,7 @@ export class ClientManager implements WorkspaceAwareService {
    * 获取代理配置
    */
   public getProxyConfig(): string | undefined {
-    return process.env.HTTPS_PROXY || process.env.HTTP_PROXY;
+    return process.env['HTTPS_PROXY'] || process.env['HTTP_PROXY'];
   }
 
   /**

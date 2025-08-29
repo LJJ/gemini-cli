@@ -57,7 +57,7 @@ echo "🔌 macOS应用连接端口: $GEMINI_PORT"
 export GEMINI_NO_BROWSER=true
 echo "🔐 启用 code 登录模式"
 
-npm run start:server &
+npx tsx src/server.ts &
 SERVER_PID=$!
 
 # 等待服务器启动

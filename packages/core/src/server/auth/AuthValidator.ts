@@ -61,10 +61,10 @@ export class AuthValidator {
     googleCloudProject: string | null;
     googleCloudLocation: string | null;
   } {
-    const geminiApiKey = process.env.GEMINI_API_KEY;
-    const googleApiKey = process.env.GOOGLE_API_KEY;
-    const googleCloudProject = process.env.GOOGLE_CLOUD_PROJECT;
-    const googleCloudLocation = process.env.GOOGLE_CLOUD_LOCATION;
+    const geminiApiKey = process.env['GEMINI_API_KEY'];
+    const googleApiKey = process.env['GOOGLE_API_KEY'];
+    const googleCloudProject = process.env['GOOGLE_CLOUD_PROJECT'];
+    const googleCloudLocation = process.env['GOOGLE_CLOUD_LOCATION'];
 
     if (geminiApiKey) {
       console.log('从环境变量加载 Gemini API Key 认证');

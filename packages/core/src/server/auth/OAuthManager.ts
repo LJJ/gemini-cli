@@ -165,6 +165,7 @@ export class OAuthManager {
   /**
    * 检查并清理过期的OAuth缓存凭据（仅用于登录流程）
    */
+  /* 完全注释掉未使用的方法
   private async checkAndCleanExpiredCredentials(): Promise<boolean> {
     try {
       // 检查凭据文件是否存在
@@ -177,10 +178,11 @@ export class OAuthManager {
 
       // 读取凭据文件
       const credsData = await fs.readFile(this.oauthCredsPath, 'utf-8');
-      const creds = JSON.parse(credsData);
+      // const creds = JSON.parse(credsData);
 
       // 只有在明显损坏的情况下才清理
-      if (this.isCredentialsCorrupted(creds)) {
+      // 暂时注释掉损坏检查
+      if (false) { // this.isCredentialsCorrupted(creds)
         console.log('检测到损坏的OAuth凭据，正在清理...');
         await this.cleanExpiredCredentials();
         return true;
@@ -199,10 +201,13 @@ export class OAuthManager {
       }
     }
   }
+  */
 
   /**
    * 判断凭据是否损坏（只检查基本格式）
    */
+  /*
+  // 暂时完全注释掉这个方法
   private isCredentialsCorrupted(creds: any): boolean {
     // 检查凭据文件是否损坏
     if (typeof creds !== 'object' || creds === null) {
@@ -216,6 +221,7 @@ export class OAuthManager {
 
     return false;
   }
+  */
 
   /**
    * 判断错误是否为认证错误（需要清理凭据）

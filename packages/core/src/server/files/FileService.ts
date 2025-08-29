@@ -13,7 +13,7 @@ import { glob } from 'glob';
 export class FileService {
   public async listDirectory(req: express.Request, res: express.Response) {
     try {
-      const dirPath = req.query.path as string || '.';
+      const dirPath = req.query['path'] as string || '.';
       const fullPath = path.resolve(dirPath);
       const items = await fs.readdir(fullPath, { withFileTypes: true });
       const directoryItems = items.map(item => ({
@@ -21,9 +21,9 @@ export class FileService {
         type: item.isDirectory() ? 'directory' : 'file',
         path: path.join(fullPath, item.name)
       }));
-      res.json(ResponseFactory.listDirectory(fullPath, directoryItems));
+      return res.json(ResponseFactory.listDirectory(fullPath, directoryItems));
     } catch (error) {
-      res.status(500).json(ResponseFactory.internalError(error instanceof Error ? error.message : 'Unknown error'));
+      return res.status(500).json(ResponseFactory.internalError(error instanceof Error ? error.message : 'Unknown error'));
     }
   }
 
@@ -89,10 +89,10 @@ export class FileService {
       });
 
       // 使用现有的 ResponseFactory.listDirectory 方法
-      res.json(ResponseFactory.listDirectory(searchPath, validItems));
+      return res.json(ResponseFactory.listDirectory(searchPath, validItems));
       
     } catch (error) {
-      res.status(500).json(ResponseFactory.internalError(error instanceof Error ? error.message : 'Unknown error'));
+      return res.status(500).json(ResponseFactory.internalError(error instanceof Error ? error.message : 'Unknown error'));
     }
   }
 
@@ -103,9 +103,9 @@ export class FileService {
         return res.status(400).json(ResponseFactory.validationError('path', 'File path is required'));
       }
       const content = await fs.readFile(filePath, 'utf-8');
-      res.json(ResponseFactory.readFile(filePath, content, true));
+      return res.json(ResponseFactory.readFile(filePath, content, true));
     } catch (error) {
-      res.status(500).json(ResponseFactory.readFile(req.body.path, null, false, error instanceof Error ? error.message : 'Unknown error'));
+      return res.status(500).json(ResponseFactory.readFile(req.body.path, null, false, error instanceof Error ? error.message : 'Unknown error'));
     }
   }
 
@@ -116,9 +116,9 @@ export class FileService {
         return res.status(400).json(ResponseFactory.validationError('path/content', 'File path and content are required'));
       }
       await fs.writeFile(filePath, content, 'utf-8');
-      res.json(ResponseFactory.writeFile(filePath, content, true));
+      return res.json(ResponseFactory.writeFile(filePath, content, true));
     } catch (error) {
-      res.status(500).json(ResponseFactory.writeFile(req.body.path, req.body.content, false, error instanceof Error ? error.message : 'Unknown error'));
+      return res.status(500).json(ResponseFactory.writeFile(req.body.path, req.body.content, false, error instanceof Error ? error.message : 'Unknown error'));
     }
   }
 } 

@@ -23,9 +23,9 @@ export class CommandService {
         options.cwd = cwd;
       }
       const { stdout, stderr } = await execAsync(command, options);
-      res.json(ResponseFactory.executeCommand(command, stdout.toString(), stderr?.toString() || null, 0));
+      return res.json(ResponseFactory.executeCommand(command, stdout.toString(), stderr?.toString() || null, 0));
     } catch (error: any) {
-      res.json(ResponseFactory.executeCommand(
+      return res.json(ResponseFactory.executeCommand(
         req.body.command,
         error.stdout?.toString() || '',
         error.stderr?.toString() || error.message,

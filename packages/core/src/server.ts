@@ -396,7 +396,7 @@ export class APIServer {
 
 // 如果直接运行此文件，启动服务器
 if (import.meta.url === `file://${process.argv[1]}`) {
-  const port = parseInt(process.env.PORT || '18080', 10);
+  const port = parseInt(process.env['PORT'] || '18080', 10);
   const server = new APIServer(port);
   
   // 使用async立即执行函数来处理异步启动

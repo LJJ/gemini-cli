@@ -5,8 +5,9 @@
  */
 
 import express from 'express';
-import { StreamingEventFactory, StreamingEvent } from '../types/streaming-events.js';
-import { CompletedToolCall } from '../../core/coreToolScheduler.js';
+import { StreamingEventFactory } from '../types/streaming-events.js';
+import type { StreamingEvent } from '../types/streaming-events.js';
+import type { CompletedToolCall } from '../../core/coreToolScheduler.js';
 
 /**
  * 流式事件服务 - 负责结构化事件的创建和发送

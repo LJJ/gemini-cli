@@ -6,7 +6,7 @@
 
 import express from 'express';
 import { ResponseFactory } from '../utils/responseFactory.js';
-import { ErrorCode } from '../types/error-codes.js';
+// import { ErrorCode } from '../types/error-codes.js';
 
 /**
  * 项目配置服务
@@ -27,11 +27,11 @@ export class ProjectService {
         isConfigured: this.projectId !== null
       };
 
-      res.json(ResponseFactory.success(config));
+      return res.json(ResponseFactory.success(config));
     } catch (error) {
       console.error('Error in handleGetConfig:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      res.status(500).json(ResponseFactory.internalError(errorMessage));
+      return res.status(500).json(ResponseFactory.internalError(errorMessage));
     }
   }
 
@@ -56,7 +56,7 @@ export class ProjectService {
       this.lastUpdated = Date.now();
 
       // 设置环境变量
-      process.env.GOOGLE_CLOUD_PROJECT = trimmedProjectId;
+      process.env['GOOGLE_CLOUD_PROJECT'] = trimmedProjectId;
 
       console.log('ProjectService: Project ID set to:', trimmedProjectId);
 
@@ -69,11 +69,11 @@ export class ProjectService {
         message: 'Project ID configured successfully'
       };
 
-      res.json(ResponseFactory.success(response));
+      return res.json(ResponseFactory.success(response));
     } catch (error) {
       console.error('Error in handleSetConfig:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      res.status(500).json(ResponseFactory.internalError(errorMessage));
+      return res.status(500).json(ResponseFactory.internalError(errorMessage));
     }
   }
 
@@ -81,7 +81,7 @@ export class ProjectService {
    * 获取当前项目ID
    */
   public static getCurrentProjectId(): string | null {
-    return this.projectId || process.env.GOOGLE_CLOUD_PROJECT || null;
+    return this.projectId || process.env['GOOGLE_CLOUD_PROJECT'] || null;
   }
 
   /**
@@ -97,7 +97,7 @@ export class ProjectService {
   public static clearConfig(): void {
     this.projectId = null;
     this.lastUpdated = 0;
-    delete process.env.GOOGLE_CLOUD_PROJECT;
+    delete process.env['GOOGLE_CLOUD_PROJECT'];
   }
 
   /**
