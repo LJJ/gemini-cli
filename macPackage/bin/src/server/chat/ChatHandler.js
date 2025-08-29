@@ -1,0 +1,297 @@
+/**
+ * @license
+ * Copyright 2025 Google LLC
+ * SPDX-License-Identifier: Apache-2.0
+ */
+import { Turn, GeminiEventType } from '../../core/turn.js';
+import { ErrorCode, createError } from '../types/error-codes.js';
+import { configFactory } from '../core/ConfigFactory.js';
+/**
+ * 聊天处理器 - 负责聊天消息的处理和流式响应（优化版）
+ *
+ * 职责：
+ * - 聊天消息处理
+ * - 流式响应管理
+ * - 事件分发
+ * - Turn 生命周期管理
+ * - 工具调用结果处理
+ *
+ * 优化后的特性：
+ * - 使用ConfigFactory获取client和config
+ * - 适应新的工作区管理模式
+ */
+export class ChatHandler {
+    clientManager;
+    streamingEventService;
+    toolOrchestrator;
+    currentTurn = null;
+    abortController = null;
+    pendingToolCalls = new Map();
+    completedToolCalls = [];
+    waitingForToolCompletion = false;
+    constructor(clientManager, streamingEventService, toolOrchestrator) {
+        this.clientManager = clientManager;
+        this.streamingEventService = streamingEventService;
+        this.toolOrchestrator = toolOrchestrator;
+    }
+    cancelCurrentChat() {
+        console.log('ChatHandler: 收到取消请求');
+        if (this.abortController) {
+            this.abortController.abort();
+            console.log('ChatHandler: AbortController 信号已触发');
+        }
+        this.resetState();
+        console.log('ChatHandler: 状态已重置');
+    }
+    async handleStreamingChat(message, filePaths = [], res) {
+        try {
+            console.log('=== 开始流式聊天处理 ===');
+            // 立即重置状态，确保每次请求都是干净的开始
+            this.resetState();
+            // 设置流式响应
+            this.streamingEventService.setupStreamingResponse(res);
+            // 构建完整消息
+            const fullMessage = this.buildFullMessage(message, filePaths);
+            // 获取客户端和配置 - 使用新的ConfigFactory接口
+            const container = configFactory.getCurrentWorkspaceContainer();
+            const geminiClient = container.geminiClient;
+            const config = container.config;
+            if (!geminiClient || !config) {
+                throw createError(ErrorCode.CLIENT_NOT_INITIALIZED);
+            }
+            // 初始化工具协调器
+            await this.toolOrchestrator.initializeScheduler(config);
+            // 设置工具调用完成回调
+            this.toolOrchestrator.setToolCompletionCallback(this.handleToolCallsComplete.bind(this));
+            // 创建 Turn 和中止信号
+            const chat = geminiClient.getChat();
+            const prompt_id = config.getSessionId() + '########' + Date.now();
+            this.currentTurn = new Turn(chat, prompt_id);
+            this.abortController = new AbortController();
+            // 处理流式响应（可能包含多轮对话）
+            await this.processConversationWithTools(fullMessage, res);
+            // 发送完成事件
+            this.streamingEventService.sendCompleteEvent(res);
+        }
+        catch (error) {
+            // 安全的错误日志 - 避免循环引用问题
+            try {
+                console.error('Error in handleStreamingChat:', error);
+            }
+            catch (logError) {
+                console.error('Error in handleStreamingChat (simplified):', {
+                    message: error instanceof Error ? error.message : 'Unknown error',
+                    name: error instanceof Error ? error.name : 'Unknown',
+                    logError: logError instanceof Error ? logError.message : 'Unknown log error'
+                });
+            }
+            // 检查是否是用户取消操作
+            if (error instanceof Error && error.name === 'AbortError') {
+                console.log('聊天被用户取消');
+                // 用户取消不发送错误事件，直接发送完成事件
+                this.streamingEventService.sendCompleteEvent(res);
+                return;
+            }
+            const errorCode = error instanceof Error && error.code ? error.code : ErrorCode.STREAM_ERROR;
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            this.streamingEventService.sendErrorEvent(res, errorMessage, errorCode, error instanceof Error ? error.stack : undefined);
+        }
+        finally {
+            this.toolOrchestrator.clearCurrentResponse();
+            this.resetState();
+        }
+    }
+    async processConversationWithTools(message, res) {
+        const messageParts = [{ text: message }];
+        // 处理初始消息
+        await this.processStreamEvents(messageParts, res);
+        // 处理工具调用结果的循环
+        await this.processToolCallResults(res);
+    }
+    async processToolCallResults(res) {
+        // 当仍有待完成的工具调用或待发送的工具结果时持续循环
+        while (this.pendingToolCalls.size > 0 || this.completedToolCalls.length > 0) {
+            // 如果仍有未完成的工具调用，等待其全部完成
+            if (this.pendingToolCalls.size > 0) {
+                console.log('等待所有工具调用完成...');
+                await this.waitForToolCompletion();
+                continue; // 等待结束后重新检查条件
+            }
+            // 所有工具调用已完成，批量发送结果
+            if (this.completedToolCalls.length > 0) {
+                console.log('全部工具调用完成，批量发送结果回 Gemini...');
+                await this.processToolResults(res);
+            }
+        }
+    }
+    async processStreamEvents(messageParts, res) {
+        if (!this.currentTurn || !this.abortController) {
+            throw createError(ErrorCode.TURN_NOT_INITIALIZED);
+        }
+        // 收集所有工具调用请求，而不是立即处理
+        const toolCallRequests = [];
+        for await (const event of this.currentTurn.run(messageParts, this.abortController.signal)) {
+            console.log('收到事件:', event.type);
+            switch (event.type) {
+                case GeminiEventType.Content:
+                    this.streamingEventService.sendContentEvent(res, event.value);
+                    break;
+                case GeminiEventType.Thought:
+                    this.streamingEventService.sendThoughtEvent(res, event.value.subject, event.value.description);
+                    break;
+                case GeminiEventType.ToolCallRequest:
+                    // 收集工具调用请求而不是立即处理
+                    console.log('收集工具调用请求:', event.value);
+                    toolCallRequests.push(event.value);
+                    break;
+                case GeminiEventType.ToolCallResponse:
+                    console.log('收到工具调用响应:', event.value);
+                    break;
+                case GeminiEventType.Error:
+                    // 安全的错误日志 - 避免循环引用问题
+                    try {
+                        const errorInfo = {
+                            message: event.value.error?.message || '未知错误',
+                            status: event.value.error?.status,
+                            code: event.value.error?.code,
+                            details: event.value.error?.details
+                        };
+                        console.error('❌ Gemini API 错误详情:', JSON.stringify(errorInfo, null, 2));
+                    }
+                    catch (stringifyError) {
+                        console.error('❌ Gemini API 错误:', event.value.error?.message || 'Unknown error');
+                        console.error('序列化错误对象失败:', stringifyError instanceof Error ? stringifyError.message : 'Unknown stringify error');
+                    }
+                    this.streamingEventService.sendErrorEvent(res, event.value.error.message, ErrorCode.GEMINI_ERROR, event.value.error.status?.toString());
+                    break;
+                case GeminiEventType.UserCancelled:
+                    console.log('用户取消了聊天');
+                    // 用户取消不应该作为错误处理，直接返回即可
+                    return;
+                case GeminiEventType.ChatCompressed:
+                    console.log('聊天历史被压缩:', event.value);
+                    break;
+            }
+        }
+        // 批量处理所有工具调用请求
+        if (toolCallRequests.length > 0) {
+            console.log(`批量调度 ${toolCallRequests.length} 个工具调用`);
+            await this.handleBatchToolCallRequests(toolCallRequests, res);
+        }
+    }
+    async handleBatchToolCallRequests(requests, res) {
+        if (!this.abortController) {
+            throw createError(ErrorCode.ABORT_CONTROLLER_NOT_INITIALIZED);
+        }
+        console.log('批量处理工具调用请求:', requests.length);
+        // 记录所有待处理的工具调用
+        for (const request of requests) {
+            this.pendingToolCalls.set(request.callId, request);
+        }
+        this.waitingForToolCompletion = true;
+        // 批量调度所有工具调用
+        await this.toolOrchestrator.scheduleToolCalls(requests, this.abortController.signal, res);
+        // 立即检查是否已经有完成的工具调用（针对不需要确认的工具）
+        await new Promise(resolve => setTimeout(resolve, 10)); // 给调度一点时间
+    }
+    async handleToolCallsComplete(completedCalls) {
+        console.log('ChatHandler: 收到工具调用完成通知', completedCalls.length);
+        console.log('当前已完成工具调用数量:', this.completedToolCalls.length);
+        // 打印新完成的工具调用详情
+        for (const call of completedCalls) {
+            console.log(`新完成工具: callId=${call.request.callId}, name=${call.request.name}, status=${call.status}`);
+        }
+        // 增量保存完成的工具调用
+        this.completedToolCalls.push(...completedCalls);
+        console.log('保存后已完成工具调用数量:', this.completedToolCalls.length);
+        // 更新待处理的工具调用集合
+        for (const call of completedCalls) {
+            this.pendingToolCalls.delete(call.request.callId);
+        }
+        // 仍有待处理工具则继续等待
+        this.waitingForToolCompletion = this.pendingToolCalls.size > 0;
+    }
+    async waitForToolCompletion() {
+        return new Promise((resolve) => {
+            const checkCompletion = () => {
+                if (!this.waitingForToolCompletion) {
+                    resolve();
+                }
+                else {
+                    setTimeout(checkCompletion, 100);
+                }
+            };
+            checkCompletion();
+        });
+    }
+    async processToolResults(res) {
+        if (!this.currentTurn || !this.abortController) {
+            throw createError(ErrorCode.TURN_NOT_INITIALIZED);
+        }
+        console.log('开始构建工具结果，待处理工具调用:', this.completedToolCalls.length);
+        // 关键修复：确保为每个工具调用都构建正确的响应
+        const toolResultParts = [];
+        for (const call of this.completedToolCalls) {
+            console.log(`构建工具结果 - callId: ${call.request.callId}, status: ${call.status}`);
+            if (call.status === 'success' && call.response) {
+                // 成功的工具调用
+                const responseParts = call.response.responseParts;
+                if (Array.isArray(responseParts)) {
+                    toolResultParts.push(...responseParts);
+                }
+                else {
+                    toolResultParts.push(responseParts);
+                }
+            }
+            else {
+                // 失败的工具调用 - 必须构建错误响应
+                const errorResponse = {
+                    functionResponse: {
+                        name: call.request.name,
+                        response: {
+                            error: call.response?.error?.message || `Tool execution failed with status: ${call.status}`
+                        }
+                    }
+                };
+                toolResultParts.push(errorResponse);
+                console.log(`为失败的工具调用构建错误响应:`, errorResponse);
+            }
+        }
+        console.log(`发送工具结果到 Gemini: ${toolResultParts.length} 个部分，对应 ${this.completedToolCalls.length} 个工具调用`);
+        this.resetState();
+        // 关键修复：发送工具结果给Gemini并等待回复，而不是直接结束对话
+        try {
+            // 处理工具结果的流式响应
+            await this.processStreamEvents(toolResultParts, res);
+            // 继续处理可能的新工具调用
+            await this.processToolCallResults(res);
+        }
+        catch (error) {
+            console.error('❌ 处理工具结果时出错:', error);
+            // 如果是Gemini API错误，尝试提取详细信息
+            if (error instanceof Error) {
+                console.error('❌ 错误详情:', {
+                    message: error.message,
+                    stack: error.stack
+                });
+            }
+            this.streamingEventService.sendErrorEvent(res, error instanceof Error ? error.message : 'Unknown error', ErrorCode.STREAM_ERROR);
+        }
+    }
+    resetState() {
+        console.log('重置ChatHandler状态');
+        console.log(`清理前状态: pendingToolCalls=${this.pendingToolCalls.size}, completedToolCalls=${this.completedToolCalls.length}`);
+        this.pendingToolCalls.clear();
+        this.completedToolCalls = [];
+        this.waitingForToolCompletion = false;
+        console.log('状态已重置');
+    }
+    buildFullMessage(message, filePaths) {
+        if (filePaths && filePaths.length > 0) {
+            const filePathsText = filePaths.map((p) => `@${p}`).join(' ');
+            return `${message}\n${filePathsText}`;
+        }
+        return message;
+    }
+}
+//# sourceMappingURL=ChatHandler.js.map

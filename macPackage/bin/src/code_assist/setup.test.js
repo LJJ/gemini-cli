@@ -1,0 +1,62 @@
+/**
+ * @license
+ * Copyright 2025 Google LLC
+ * SPDX-License-Identifier: Apache-2.0
+ */
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { setupUser, ProjectIdRequiredError } from './setup.js';
+import { CodeAssistServer } from '../code_assist/server.js';
+import { UserTierId } from './types.js';
+vi.mock('../code_assist/server.js');
+const mockPaidTier = {
+    id: UserTierId.STANDARD,
+    name: 'paid',
+    description: 'Paid tier',
+};
+describe('setupUser', () => {
+    let mockLoad;
+    let mockOnboardUser;
+    beforeEach(() => {
+        vi.resetAllMocks();
+        mockLoad = vi.fn();
+        mockOnboardUser = vi.fn().mockResolvedValue({
+            done: true,
+            response: {
+                cloudaicompanionProject: {
+                    id: 'server-project',
+                },
+            },
+        });
+        vi.mocked(CodeAssistServer).mockImplementation(() => ({
+            loadCodeAssist: mockLoad,
+            onboardUser: mockOnboardUser,
+        }));
+    });
+    it('should use GOOGLE_CLOUD_PROJECT when set', async () => {
+        process.env.GOOGLE_CLOUD_PROJECT = 'test-project';
+        mockLoad.mockResolvedValue({
+            currentTier: mockPaidTier,
+        });
+        await setupUser({});
+        expect(CodeAssistServer).toHaveBeenCalledWith(expect.any(Object), 'test-project');
+    });
+    it('should treat empty GOOGLE_CLOUD_PROJECT as undefined and use project from server', async () => {
+        process.env.GOOGLE_CLOUD_PROJECT = '';
+        mockLoad.mockResolvedValue({
+            cloudaicompanionProject: 'server-project',
+            currentTier: mockPaidTier,
+        });
+        const projectId = await setupUser({});
+        expect(CodeAssistServer).toHaveBeenCalledWith(expect.any(Object), undefined);
+        expect(projectId).toBe('server-project');
+    });
+    it('should throw ProjectIdRequiredError when no project ID is available', async () => {
+        delete process.env.GOOGLE_CLOUD_PROJECT;
+        // And the server itself requires a project ID internally
+        vi.mocked(CodeAssistServer).mockImplementation(() => {
+            throw new ProjectIdRequiredError();
+        });
+        await expect(setupUser({})).rejects.toThrow(ProjectIdRequiredError);
+    });
+});
+//# sourceMappingURL=setup.test.js.map
