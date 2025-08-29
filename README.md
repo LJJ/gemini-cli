@@ -2,6 +2,12 @@
 
 GeminiForMac is a macOS desktop client based on [gemini-cli](./README_ORIGINAL.md), providing a user-friendly graphical interface for interacting with Google Gemini AI.
 
+## Roadmap
+
+- Add **Chat History** feature
+- Implement **Tool Execution Whitelist**, similar to Cursor
+- Support **Custom Directory AI Context Markdown files** (e.g., `gemini.md`, `claude.md`)
+
 ## Features
 ![client-Code](./docs/assets/client_code_review.png)
 
