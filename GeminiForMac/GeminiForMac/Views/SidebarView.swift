@@ -11,9 +11,9 @@ enum SidebarTab: String, CaseIterable {
     var title: String {
         switch self {
         case .fileExplorer:
-            return "文件浏览器"
+            return "File"
         case .chatHistory:
-            return "聊天历史"
+            return "History(fake)"
         }
     }
     

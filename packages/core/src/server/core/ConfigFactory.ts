@@ -8,6 +8,7 @@ import { Config, ApprovalMode } from '../../config/config.js';
 import type { ConfigParameters } from '../../config/config.js';
 import { EventEmitter } from 'events';
 import { DEFAULT_GEMINI_EMBEDDING_MODEL } from '../../config/models.js';
+import { ProxyConfigManager } from '../utils/ProxyConfigManager.js';
 import { AuthService } from '../../server/auth/AuthService.js';
 import { GeminiClient } from '../../core/client.js';
 // createToolRegistry 现在是 Config 类的方法
@@ -335,13 +336,41 @@ export class ConfigFactory {
     console.log('ConfigFactory: 初始化Config对象');
     await config.initialize();
     
-    // 重要：初始化GeminiClient（使用AuthService的当前认证类型）
+    // 重要：初始化GeminiClient（根据代理设置决定是否进行网络检测）
     const authService = this.getOrCreateAuthService();
     const authType = authService.getCurrentAuthType();
     if (authType) {
-      console.log('ConfigFactory: 初始化GeminiClient，认证类型:', authType);
-      await config.refreshAuth(authType);
-      console.log('ConfigFactory: GeminiClient初始化完成');
+      try {
+        // 先检查代理配置
+        const proxyManager = ProxyConfigManager.getInstance();
+        const proxyConfig = proxyManager.getConfig();
+        
+        if (proxyConfig.enabled) {
+          console.log('ConfigFactory: 检测到代理设置，跳过网络检测，直接初始化GeminiClient');
+          console.log('ConfigFactory: 初始化GeminiClient，认证类型:', authType);
+          await config.refreshAuth(authType);
+          console.log('ConfigFactory: GeminiClient初始化完成');
+        } else {
+          console.log('ConfigFactory: 未设置代理，开始网络检测...');
+          const networkChecker = NetworkChecker.getInstance();
+          const hasGoogleConnectivity = await networkChecker.checkGoogleConnectivity();
+          
+          if (!hasGoogleConnectivity) {
+            const errorMessage = await networkChecker.generateConnectivityErrorMessage();
+            console.log('⚠️ ConfigFactory: 网络检测失败，建议用户设置代理');
+            console.log('网络诊断：', errorMessage);
+            // 不抛出错误，让Config对象继续可用，等待用户配置代理后重试
+          } else {
+            console.log('ConfigFactory: 网络检测通过，初始化GeminiClient，认证类型:', authType);
+            await config.refreshAuth(authType);
+            console.log('ConfigFactory: GeminiClient初始化完成');
+          }
+        }
+      } catch (networkError) {
+        console.log('⚠️ ConfigFactory: GeminiClient初始化失败（可能是网络问题），但Config对象仍然可用');
+        console.log('错误详情:', networkError);
+        // 不抛出错误，让Config对象继续可用，等待用户配置代理后重试
+      }
     } else {
       console.log('⚠️ ConfigFactory: 没有有效的认证类型，跳过GeminiClient初始化');
     }
